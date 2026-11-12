@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>Meu financeiro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  <script src="{{ url_for('static', filename='js/data.js') }}" defer></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navegação principal">
+      <a class="brand" href="#" aria-label="Meu financeiro, início">
+        <span class="brand-mark" aria-hidden="true">m</span>
+        <span>meu<span class="brand-light">financeiro</span></span>
+      </a>
+      <div class="sidebar-label">MENU</div>
+      <nav class="main-nav">
+        <a class="nav-link active" href="#painel" aria-current="page"><span class="nav-icon" aria-hidden="true">▦</span>Painel</a>
+        <a class="nav-link" href="#lancamentos"><span class="nav-icon" aria-hidden="true">↕</span>Lançamentos</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="profile-avatar" aria-hidden="true">J</div>
+        <div class="profile-copy"><strong>JV Peixoto</strong><span>Minha conta</span></div>
+        <span class="profile-menu" aria-hidden="true">···</span>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark" aria-hidden="true">m</span> meu financeiro</div>
+        <div class="breadcrumb">Visão geral <span>/</span> <strong>Painel</strong></div>
+        <div class="topbar-right"><span class="status-dot"></span><span>Seus dados estão atualizados</span></div>
+      </header>
+
+      <section class="page-heading" id="painel">
+        <div>
+          <p class="eyebrow" id="current-date-label"></p>
+          <h1>Seu dinheiro, <span>em equilíbrio.</span></h1>
+          <p class="page-subtitle">Acompanhe suas finanças e mantenha tudo em dia.</p>
+        </div>
+        <button class="button button-primary" id="new-entry-button" type="button"><span aria-hidden="true">＋</span> Novo lançamento</button>
+      </section>
+
+      <div class="feedback" id="global-feedback" role="status" aria-live="polite" hidden></div>
+
+      <section class="summary-section" aria-labelledby="summary-heading">
+        <div class="section-heading">
+          <div><h2 id="summary-heading">Resumo do período</h2><p>Confira a movimentação do mês selecionado.</p></div>
+          <label class="month-picker"><span class="sr-only">Mês do resumo</span><span aria-hidden="true">▣</span><input id="summary-month" type="month" value="2026-11"></label>
+        </div>
+        <div class="summary-grid" id="summary-cards" aria-live="polite">
+          <article class="summary-card">
+            <div class="card-top"><span class="card-label">Receitas</span><span class="card-icon income-icon" aria-hidden="true">↗</span></div>
+            <p class="card-value" id="summary-income">R$ 0,00</p><p class="card-footnote">Entradas neste mês</p>
+          </article>
+          <article class="summary-card">
+            <div class="card-top"><span class="card-label">Despesas</span><span class="card-icon expense-icon" aria-hidden="true">↙</span></div>
+            <p class="card-value" id="summary-expense">R$ 0,00</p><p class="card-footnote">Saídas neste mês</p>
+          </article>
+          <article class="summary-card result-card">
+            <div class="card-top"><span class="card-label">Resultado do período</span><span class="card-icon result-icon" aria-hidden="true">＝</span></div>
+            <p class="card-value" id="summary-result">R$ 0,00</p><p class="card-footnote">Receitas menos despesas</p>
+          </article>
+          <article class="summary-card balance-card">
+            <div class="card-top"><span class="card-label">Saldo acumulado</span><span class="card-icon balance-icon" aria-hidden="true">◷</span></div>
+            <p class="card-value" id="summary-balance">R$ 0,00</p><p class="card-footnote">Desde o primeiro lançamento</p>
+          </article>
+        </div>
+        <section class="category-summary" aria-labelledby="category-summary-heading">
+          <div class="category-summary-heading">
+            <div><h3 id="category-summary-heading">Despesas por categoria</h3><p>Veja como as despesas do mês se distribuem.</p></div>
+          </div>
+          <div class="category-summary-list" id="expense-category-list" aria-live="polite">
+            <p class="category-summary-state">Carregando categorias...</p>
+          </div>
+        </section>
+      </section>
+
+      <section class="transactions-section" id="lancamentos" aria-labelledby="transactions-heading">
+        <div class="section-heading transaction-heading">
+          <div><h2 id="transactions-heading">Últimos lançamentos</h2><p>Gerencie suas entradas e saídas.</p></div>
+          <button class="button button-secondary" id="export-button" type="button"><span aria-hidden="true">↓</span> Exportar CSV</button>
+        </div>
+        <div class="filter-panel">
+          <label class="search-field"><span aria-hidden="true">⌕</span><span class="sr-only">Pesquisar descrição</span><input id="search-filter" type="search" placeholder="Buscar lançamento..." autocomplete="off"></label>
+          <label class="filter-control"><span class="sr-only">Filtrar mês</span><input id="list-month-filter" type="month" value="2026-11"></label>
+          <label class="filter-control"><span class="sr-only">Filtrar tipo</span><select id="type-filter"><option value="">Todos os tipos</option><option value="receita">Receitas</option><option value="despesa">Despesas</option></select></label>
+          <label class="filter-control"><span class="sr-only">Filtrar categoria</span><select id="category-filter"><option value="">Todas as categorias</option></select></label>
+          <button class="button button-text" id="clear-filters" type="button">Limpar filtros</button>
+        </div>
+        <div class="list-meta"><span id="results-count">0 lançamentos</span><span>Mais recentes primeiro</span></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">DESCRIÇÃO</th><th scope="col">CATEGORIA</th><th scope="col">DATA</th><th scope="col">TIPO</th><th scope="col" class="amount-column">VALOR</th><th scope="col"><span class="sr-only">Ações</span></th></tr></thead>
+            <tbody id="transactions-body"></tbody>
+          </table>
+          <div class="list-state" id="list-state" role="status" aria-live="polite" hidden></div>
+        </div>
+      </section>
+      <footer class="page-footer"><span>Feito para cuidar bem do que é seu.</span><span>Valores em reais (BRL)</span></footer>
+    </main>
+  </div>
+
+  <dialog class="entry-dialog" id="entry-dialog" aria-labelledby="form-title">
+    <form id="entry-form" novalidate>
+      <div class="dialog-heading">
+        <div><p class="eyebrow">SEU DINHEIRO, SOB CONTROLE</p><h2 id="form-title">Novo lançamento</h2></div>
+        <button class="icon-button" id="close-dialog" type="button" aria-label="Fechar formulário">×</button>
+      </div>
+      <p class="dialog-intro">Preencha os dados da movimentação.</p>
+      <div class="form-error" id="form-error" role="alert" hidden></div>
+      <input id="entry-id" type="hidden">
+      <div class="form-grid">
+        <fieldset class="type-choice full-width">
+          <legend>Tipo de lançamento <span class="required-mark">*</span></legend>
+          <div class="segmented-control">
+            <label><input type="radio" name="tipo" value="despesa" checked><span class="segment-dot expense-dot"></span>Despesa</label>
+            <label><input type="radio" name="tipo" value="receita"><span class="segment-dot income-dot"></span>Receita</label>
+          </div>
+          <small class="field-error" data-error-for="tipo"></small>
+        </fieldset>
+        <label class="form-field full-width">Descrição <span class="required-mark">*</span>
+          <input id="entry-description" name="descricao" type="text" maxlength="120" placeholder="Ex.: Conta de luz" autocomplete="off" aria-describedby="error-descricao">
+          <small class="field-error" id="error-descricao"></small>
+        </label>
+        <label class="form-field">Valor <span class="required-mark">*</span>
+          <div class="input-with-prefix"><span>R$</span><input id="entry-amount" name="valor" type="text" inputmode="decimal" placeholder="0,00" aria-describedby="error-valor_centavos"></div>
+          <small class="field-error" id="error-valor_centavos"></small>
+        </label>
+        <label class="form-field">Data <span class="required-mark">*</span>
+          <input id="entry-date" name="data" type="date" aria-describedby="error-data">
+          <small class="field-error" id="error-data"></small>
+        </label>
+        <label class="form-field full-width">Categoria <span class="required-mark">*</span>
+          <select id="entry-category" name="categoria_id" aria-describedby="error-categoria_id"></select>
+          <small class="field-error" id="error-categoria_id"></small>
+        </label>
+      </div>
+      <div class="dialog-actions">
+        <button class="button button-secondary" id="cancel-dialog" type="button">Cancelar</button>
+        <button class="button button-primary" id="save-entry" type="submit">Salvar lançamento</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
