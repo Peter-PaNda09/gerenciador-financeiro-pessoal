@@ -15,11 +15,7 @@ load_dotenv()
 
 
 class RepositorioTransacoes:
-    """
-    Concentra a leitura e escrita no banco PostgreSQL hospedado no Supabase.
-    Converte os registros retornados pela API do Supabase em objetos Receita,
-    Despesa e Categoria, mantendo o domínio POO desacoplado do banco.
-    """
+    """Concentra a leitura e escrita no Supabase e converte linhas em objetos POO."""
 
     def __init__(self, url: Optional[str] = None, key: Optional[str] = None):
         supabase_url = url or os.environ.get("SUPABASE_URL")
@@ -40,7 +36,7 @@ class RepositorioTransacoes:
         resposta = query.order("id").execute()
         return [
             Categoria(
-                id_categoria=linha["id"],
+                id=linha["id"],
                 nome=linha["nome"],
                 tipo_permitido=linha["tipo_permitido"],
             )
@@ -55,33 +51,27 @@ class RepositorioTransacoes:
             .execute()
         )
         if not resposta.data:
-            raise ErroValidacaoFinanceira(
-                f"Categoria com ID {categoria_id} não encontrada no Supabase."
-            )
+            raise ErroValidacaoFinanceira("Selecione uma categoria.", campo="categoria_id")
         linha = resposta.data[0]
         return Categoria(
-            id_categoria=linha["id"],
+            id=linha["id"],
             nome=linha["nome"],
             tipo_permitido=linha["tipo_permitido"],
         )
 
     def _instanciar_transacao(self, linha: Dict[str, Any]) -> Transacao:
-        """
-        Fábrica interna que reconstrói o objeto polimórfico Receita ou Despesa
-        a partir do JSON retornado pelo JOIN do Supabase.
-        """
         dados_cat = linha.get("categorias") or {}
         categoria = Categoria(
-            id_categoria=dados_cat.get("id", linha["categoria_id"]),
-            nome=dados_cat.get("nome", "Sem Categoria"),
+            id=dados_cat.get("id", linha["categoria_id"]),
+            nome=dados_cat.get("nome", "Categoria removida"),
             tipo_permitido=dados_cat.get("tipo_permitido", linha["tipo"]),
         )
         classe_concreta = Receita if linha["tipo"] == "receita" else Despesa
         return classe_concreta(
-            id_transacao=linha["id"],
+            id=linha["id"],
             descricao=linha["descricao"],
             valor_centavos=linha["valor_centavos"],
-            data_lancamento=str(linha["data"]),
+            data=str(linha["data"]),
             categoria=categoria,
         )
 
@@ -118,7 +108,7 @@ class RepositorioTransacoes:
         )
         if not resposta.data:
             raise RegistroNaoEncontradoErro(
-                f"Lançamento com ID {transacao.id} não encontrado."
+                "Este lançamento não foi encontrado. Atualize a página e tente novamente."
             )
         return transacao
 
@@ -131,7 +121,7 @@ class RepositorioTransacoes:
         )
         if not resposta.data:
             raise RegistroNaoEncontradoErro(
-                f"Lançamento com ID {id_transacao} não encontrado."
+                "Este lançamento não foi encontrado. Atualize a página e tente novamente."
             )
 
     def buscar_por_id(self, id_transacao: int) -> Transacao:
@@ -143,7 +133,7 @@ class RepositorioTransacoes:
         )
         if not resposta.data:
             raise RegistroNaoEncontradoErro(
-                f"Lançamento com ID {id_transacao} não encontrado."
+                "Este lançamento não foi encontrado. Atualize a página e tente novamente."
             )
         return self._instanciar_transacao(resposta.data[0])
 
