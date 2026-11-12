@@ -11,12 +11,32 @@ gerenciador = GerenciadorFinanceiro(repositorio)
 
 @app.errorhandler(ErroValidacaoFinanceira)
 def tratar_erro_validacao(erro: ErroValidacaoFinanceira):
-    return jsonify({"sucesso": False, "erro": str(erro)}), 400
+    return (
+        jsonify(
+            {
+                "erro": {
+                    "mensagem": erro.mensagem,
+                    "campos": erro.campos,
+                }
+            }
+        ),
+        400,
+    )
 
 
 @app.errorhandler(RegistroNaoEncontradoErro)
 def tratar_erro_nao_encontrado(erro: RegistroNaoEncontradoErro):
-    return jsonify({"sucesso": False, "erro": str(erro)}), 404
+    return (
+        jsonify(
+            {
+                "erro": {
+                    "mensagem": erro.mensagem,
+                    "campos": {},
+                }
+            }
+        ),
+        404,
+    )
 
 
 @app.errorhandler(Exception)
@@ -24,9 +44,11 @@ def tratar_erro_inesperado(erro: Exception):
     return (
         jsonify(
             {
-                "sucesso": False,
-                "erro": "Ocorreu um erro interno no servidor.",
-                "detalhe": str(erro),
+                "erro": {
+                    "mensagem": "Não foi possível concluir a operação. Tente novamente.",
+                    "detalhe": str(erro),
+                    "campos": {},
+                }
             }
         ),
         500,
@@ -35,31 +57,14 @@ def tratar_erro_inesperado(erro: Exception):
 
 @app.route("/", methods=["GET"])
 def pagina_inicial():
-    try:
-        return render_template("index.html")
-    except Exception:
-        return jsonify(
-            {
-                "sistema": "Gerenciador Financeiro Pessoal - API POO + Flask + Supabase",
-                "status": "online",
-                "rotas_disponiveis": [
-                    "GET /api/categorias",
-                    "GET /api/lancamentos",
-                    "POST /api/lancamentos",
-                    "PUT /api/lancamentos/<id>",
-                    "DELETE /api/lancamentos/<id>",
-                    "GET /api/resumo",
-                    "GET /api/exportar",
-                ],
-            }
-        )
+    return render_template("index.html")
 
 
 @app.route("/api/categorias", methods=["GET"])
 def listar_categorias():
     tipo = request.args.get("tipo")
     categorias = gerenciador.listar_categorias(tipo=tipo)
-    return jsonify([c.to_dict() for c in categorias]), 200
+    return jsonify({"dados": [c.para_dict() for c in categorias]}), 200
 
 
 @app.route("/api/lancamentos", methods=["GET"])
@@ -76,7 +81,7 @@ def listar_lancamentos():
         try:
             categoria_id = int(categoria_id_param)
         except ValueError:
-            raise ErroValidacaoFinanceira("O parâmetro 'categoria_id' deve ser inteiro.")
+            raise ErroValidacaoFinanceira("Categoria inválida.", campo="categoria_id")
 
     lancamentos = gerenciador.consultar_lancamentos(
         mes=mes,
@@ -86,7 +91,7 @@ def listar_lancamentos():
         categoria_id=categoria_id,
         busca=busca,
     )
-    return jsonify([t.to_dict() for t in lancamentos]), 200
+    return jsonify({"dados": [t.para_dict() for t in lancamentos]}), 200
 
 
 @app.route("/api/lancamentos", methods=["POST"])
@@ -95,16 +100,7 @@ def criar_lancamento():
     if dados is None:
         raise ErroValidacaoFinanceira("Corpo da requisição JSON ausente ou inválido.")
     novo = gerenciador.cadastrar_lancamento(dados)
-    return (
-        jsonify(
-            {
-                "sucesso": True,
-                "mensagem": "Lançamento cadastrado com sucesso.",
-                "lancamento": novo.to_dict(),
-            }
-        ),
-        201,
-    )
+    return jsonify({"dados": novo.para_dict()}), 201
 
 
 @app.route("/api/lancamentos/<int:id_lancamento>", methods=["PUT"])
@@ -113,30 +109,13 @@ def atualizar_lancamento(id_lancamento: int):
     if dados is None:
         raise ErroValidacaoFinanceira("Corpo da requisição JSON ausente ou inválido.")
     atualizado = gerenciador.editar_lancamento(id_lancamento, dados)
-    return (
-        jsonify(
-            {
-                "sucesso": True,
-                "mensagem": "Lançamento atualizado com sucesso.",
-                "lancamento": atualizado.to_dict(),
-            }
-        ),
-        200,
-    )
+    return jsonify({"dados": atualizado.para_dict()}), 200
 
 
 @app.route("/api/lancamentos/<int:id_lancamento>", methods=["DELETE"])
 def remover_lancamento(id_lancamento: int):
     gerenciador.excluir_lancamento(id_lancamento)
-    return (
-        jsonify(
-            {
-                "sucesso": True,
-                "mensagem": f"Lançamento {id_lancamento} excluído com sucesso.",
-            }
-        ),
-        200,
-    )
+    return jsonify({"dados": {"id": id_lancamento, "excluido": True}}), 200
 
 
 @app.route("/api/resumo", methods=["GET"])
@@ -147,7 +126,7 @@ def obter_resumo():
     resumo = gerenciador.calcular_resumo(
         mes=mes, data_inicio=data_inicio, data_fim=data_fim
     )
-    return jsonify(resumo), 200
+    return jsonify({"dados": resumo}), 200
 
 
 @app.route("/api/exportar", methods=["GET"])
@@ -171,7 +150,7 @@ def exportar_csv():
     )
 
     csv_com_bom = "\ufeff" + conteudo_csv
-    nome_arquivo = f"relatorio_financeiro_{mes or 'geral'}.csv"
+    nome_arquivo = f"lancamentos-{mes}.csv" if mes else "lancamentos.csv"
 
     return Response(
         csv_com_bom,
