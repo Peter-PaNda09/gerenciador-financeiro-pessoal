@@ -14,10 +14,7 @@ from repository import RepositorioTransacoes
 
 
 class GerenciadorFinanceiro:
-    """
-    Coordena o cadastro, edição, exclusão, filtragem, cálculo de indicadores
-    e exportação CSV das transações financeiras.
-    """
+    """Coordena regras, filtros, cálculo de resumo polimórfico e exportação CSV."""
 
     def __init__(self, repositorio: RepositorioTransacoes):
         self._repositorio = repositorio
@@ -34,13 +31,16 @@ class GerenciadorFinanceiro:
         tipo = str(dados.get("tipo", "")).strip().lower()
         if tipo not in ("receita", "despesa"):
             raise ErroValidacaoFinanceira(
-                "O campo 'tipo' é obrigatório e deve ser 'receita' ou 'despesa'."
+                "Selecione um tipo válido (receita ou despesa).",
+                campo="tipo",
             )
 
         try:
             categoria_id = int(dados.get("categoria_id"))  # type: ignore
+            if categoria_id <= 0:
+                raise ValueError
         except (TypeError, ValueError):
-            raise ErroValidacaoFinanceira("O campo 'categoria_id' deve ser um número inteiro.")
+            raise ErroValidacaoFinanceira("Selecione uma categoria.", campo="categoria_id")
 
         categoria = self._repositorio.buscar_categoria_por_id(categoria_id)
 
@@ -49,17 +49,20 @@ class GerenciadorFinanceiro:
         elif "valor" in dados and dados["valor"] is not None:
             valor_centavos = Transacao.converter_para_centavos(dados["valor"])
         else:
-            raise ErroValidacaoFinanceira("Informe 'valor_centavos' ou 'valor' no lançamento.")
+            raise ErroValidacaoFinanceira(
+                "Informe um valor maior que zero, com até duas casas decimais.",
+                campo="valor_centavos",
+            )
 
-        descricao = dados.get("descricao", "")
-        data_lancamento = dados.get("data", "")
+        descricao = str(dados.get("descricao", ""))
+        data_lancamento = str(dados.get("data", ""))
 
         classe_transacao = Receita if tipo == "receita" else Despesa
         return classe_transacao(
-            id_transacao=id_transacao,
+            id=id_transacao,
             descricao=descricao,
             valor_centavos=valor_centavos,
-            data_lancamento=data_lancamento,
+            data=data_lancamento,
             categoria=categoria,
         )
 
@@ -79,7 +82,6 @@ class GerenciadorFinanceiro:
 
     @staticmethod
     def _obter_intervalo_mes(mes_ano: str) -> Tuple[str, str]:
-        """Converte 'AAAA-MM' em ('AAAA-MM-01', 'AAAA-MM-ULTIMO_DIA')."""
         try:
             partes = mes_ano.strip().split("-")
             if len(partes) != 2:
@@ -89,9 +91,7 @@ class GerenciadorFinanceiro:
             ultimo_dia = calendar.monthrange(ano, mes)[1]
             return f"{ano:04d}-{mes:02d}-01", f"{ano:04d}-{mes:02d}-{ultimo_dia:02d}"
         except (ValueError, IndexError):
-            raise ErroValidacaoFinanceira(
-                "Filtro de mês inválido. Use o formato AAAA-MM (ex.: 2026-11)."
-            )
+            raise ErroValidacaoFinanceira("Filtro de mês inválido. Use o formato AAAA-MM.")
 
     def consultar_lancamentos(
         self,
@@ -116,7 +116,7 @@ class GerenciadorFinanceiro:
         if tipo:
             tipo_limpo = tipo.strip().lower()
             if tipo_limpo not in ("receita", "despesa"):
-                raise ErroValidacaoFinanceira("Filtro de tipo inválido. Use 'receita' ou 'despesa'.")
+                raise ErroValidacaoFinanceira("Filtro de tipo inválido.")
             transacoes = [t for t in transacoes if t.tipo == tipo_limpo]
 
         if categoria_id is not None:
@@ -136,11 +136,16 @@ class GerenciadorFinanceiro:
     ) -> Dict[str, Any]:
         todas_transacoes = self._repositorio.listar_todos()
 
-        if mes:
-            inicio_periodo, fim_periodo = self._obter_intervalo_mes(mes)
-        else:
+        if mes and mes.strip():
+            mes_ref = mes.strip()
+            inicio_periodo, fim_periodo = self._obter_intervalo_mes(mes_ref)
+        elif data_inicio or data_fim:
+            mes_ref = None
             inicio_periodo = data_inicio.strip() if data_inicio else "0001-01-01"
             fim_periodo = data_fim.strip() if data_fim else date.today().isoformat()
+        else:
+            mes_ref = date.today().strftime("%Y-%m")
+            inicio_periodo, fim_periodo = self._obter_intervalo_mes(mes_ref)
 
         transacoes_periodo = [
             t for t in todas_transacoes if inicio_periodo <= t.data <= fim_periodo
@@ -149,15 +154,15 @@ class GerenciadorFinanceiro:
             t for t in todas_transacoes if t.data <= fim_periodo
         ]
 
-        receitas_periodo_centavos = sum(
+        receitas_centavos = sum(
             t.valor_centavos for t in transacoes_periodo if isinstance(t, Receita)
         )
-        despesas_periodo_centavos = sum(
+        despesas_centavos = sum(
             t.valor_centavos for t in transacoes_periodo if isinstance(t, Despesa)
         )
 
-        # Polimorfismo: soma impacto_no_saldo() de Receita (+) e Despesa (-)
-        resultado_periodo_centavos = sum(
+        # Polimorfismo: soma impacto_no_saldo() de objetos Receita e Despesa
+        resultado_centavos = sum(
             t.impacto_no_saldo() for t in transacoes_periodo
         )
         saldo_acumulado_centavos = sum(
@@ -172,46 +177,37 @@ class GerenciadorFinanceiro:
                     gastos_por_categoria[cat_id] = {
                         "categoria_id": cat_id,
                         "categoria_nome": t.categoria.nome,
-                        "total_centavos": 0,
+                        "valor_centavos": 0,
                     }
-                gastos_por_categoria[cat_id]["total_centavos"] += t.valor_centavos
+                gastos_por_categoria[cat_id]["valor_centavos"] += t.valor_centavos
 
         lista_despesas_categoria = []
         for item in sorted(
             gastos_por_categoria.values(),
-            key=lambda x: x["total_centavos"],
-            reverse=True,
+            key=lambda x: (-x["valor_centavos"], x["categoria_id"]),
         ):
-            percentual = (
-                round((item["total_centavos"] / despesas_periodo_centavos) * 100, 2)
-                if despesas_periodo_centavos > 0
-                else 0.0
-            )
             lista_despesas_categoria.append(
                 {
                     "categoria_id": item["categoria_id"],
                     "categoria_nome": item["categoria_nome"],
-                    "total_centavos": item["total_centavos"],
-                    "total_reais": round(item["total_centavos"] / 100.0, 2),
-                    "percentual_despesas": percentual,
+                    "valor_centavos": item["valor_centavos"],
+                    "total_centavos": item["valor_centavos"],
+                    "total_reais": round(item["valor_centavos"] / 100.0, 2),
                 }
             )
 
         return {
-            "periodo": {
-                "mes": mes,
-                "data_inicio": inicio_periodo if inicio_periodo != "0001-01-01" else None,
-                "data_fim": fim_periodo,
-            },
-            "receitas_periodo_centavos": receitas_periodo_centavos,
-            "receitas_periodo_reais": round(receitas_periodo_centavos / 100.0, 2),
-            "despesas_periodo_centavos": despesas_periodo_centavos,
-            "despesas_periodo_reais": round(despesas_periodo_centavos / 100.0, 2),
-            "resultado_periodo_centavos": resultado_periodo_centavos,
-            "resultado_periodo_reais": round(resultado_periodo_centavos / 100.0, 2),
+            "mes": mes_ref,
+            # Chaves lidas pelo seu app.js
+            "receitas_centavos": receitas_centavos,
+            "despesas_centavos": despesas_centavos,
+            "resultado_centavos": resultado_centavos,
             "saldo_acumulado_centavos": saldo_acumulado_centavos,
-            "saldo_acumulado_reais": round(saldo_acumulado_centavos / 100.0, 2),
             "despesas_por_categoria": lista_despesas_categoria,
+            # Chaves de compatibilidade para o tests_referencia.py
+            "receitas_periodo_centavos": receitas_centavos,
+            "despesas_periodo_centavos": despesas_centavos,
+            "resultado_periodo_centavos": resultado_centavos,
         }
 
     def exportar_csv(
@@ -233,8 +229,8 @@ class GerenciadorFinanceiro:
         )
 
         buffer = io.StringIO()
-        escritor = csv.writer(buffer, delimiter=";")
-        escritor.writerow(["id", "data", "tipo", "categoria", "descricao", "valor"])
+        escritor = csv.writer(buffer, delimiter=";", lineterminator="\r\n")
+        escritor.writerow(["id", "data", "descricao", "tipo", "categoria", "valor"])
 
         for t in lancamentos:
             valor_decimal_br = f"{t.valor_reais:.2f}".replace(".", ",")
@@ -242,9 +238,9 @@ class GerenciadorFinanceiro:
                 [
                     t.id,
                     t.data,
+                    t.descricao,
                     t.tipo,
                     t.categoria.nome,
-                    t.descricao,
                     valor_decimal_br,
                 ]
             )
