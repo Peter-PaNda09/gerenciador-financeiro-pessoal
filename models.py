@@ -1,6 +1,12 @@
 from abc import ABC, abstractmethod
 from datetime import date, datetime
 from typing import Dict, Any, Optional
+from zoneinfo import ZoneInfo
+
+
+def data_atual_sao_paulo() -> date:
+    """Usa o mesmo fuso da interface e do contrato, inclusive em outros servidores."""
+    return datetime.now(ZoneInfo("America/Sao_Paulo")).date()
 
 
 class ErroValidacaoFinanceira(ValueError):
@@ -119,7 +125,7 @@ class Transacao(ABC):
         self._id: Optional[int] = None
         self._descricao: str = ""
         self._valor_centavos: int = 0
-        self._data: date = date.today()
+        self._data: date = data_atual_sao_paulo()
         self._categoria: Optional[Categoria] = None
 
         self.id = id
@@ -191,7 +197,7 @@ class Transacao(ABC):
             data_convertida = datetime.strptime(valor.strip(), "%Y-%m-%d").date()
         except ValueError:
             raise ErroValidacaoFinanceira("Informe uma data válida.", campo="data")
-        if data_convertida > date.today():
+        if data_convertida > data_atual_sao_paulo():
             raise ErroValidacaoFinanceira("A data não pode ser posterior a hoje.", campo="data")
         self._data = data_convertida
 
