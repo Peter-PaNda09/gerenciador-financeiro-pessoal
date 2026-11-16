@@ -150,12 +150,6 @@ Depois:
 
 `.\.venv\Scripts\python.exe -m pip install -r requirements.txt`
 
-Em Linux ou macOS:
-
-`python3 -m venv .venv`
-
-` .venv/bin/python -m pip install -r requirements.txt`
-
 ### 4. Configurar o Supabase
 
 1. Acesse o painel do Supabase.
