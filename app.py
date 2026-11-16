@@ -1,18 +1,12 @@
-import os
 
+import os
 from flask import Flask, request, jsonify, Response, render_template
 from werkzeug.exceptions import HTTPException
-
 from models import ErroValidacaoFinanceira, RegistroNaoEncontradoErro
 from persistencia_supabase import RepositorioTransacoes
 from servico import GerenciadorFinanceiro
 
-
-app = Flask(
-    __name__,
-    static_folder="static",
-    template_folder="templates"
-)
+app = Flask(__name__, static_folder="static", template_folder="templates")
 
 repositorio = RepositorioTransacoes()
 gerenciador = GerenciadorFinanceiro(repositorio)
@@ -20,61 +14,52 @@ gerenciador = GerenciadorFinanceiro(repositorio)
 
 @app.errorhandler(ErroValidacaoFinanceira)
 def tratar_erro_validacao(erro: ErroValidacaoFinanceira):
-    return jsonify({
-        "erro": {
-            "mensagem": erro.mensagem,
-            "campos": erro.campos
-        }
-    }), 400
+    return (
+        jsonify(
+            {
+                "erro": {
+                    "mensagem": erro.mensagem,
+                    "campos": erro.campos,
+                }
+            }
+        ),
+        400,
+    )
 
 
 @app.errorhandler(RegistroNaoEncontradoErro)
 def tratar_erro_nao_encontrado(erro: RegistroNaoEncontradoErro):
-    return jsonify({
-        "erro": {
-            "mensagem": erro.mensagem,
-            "campos": {}
-        }
-    }), 404
+    return (
+        jsonify(
+            {
+                "erro": {
+                    "mensagem": erro.mensagem,
+                    "campos": {},
+                }
+            }
+        ),
+        404,
+    )
 
 
 @app.errorhandler(Exception)
 def tratar_erro_inesperado(erro: Exception):
     if isinstance(erro, HTTPException):
-        return jsonify({
-            "erro": {
-                "mensagem": erro.description,
-                "campos": {}
-            }
-        }), erro.code
-
+        return jsonify({"erro": {"mensagem": erro.description, "campos": {}}}), erro.code
     app.logger.exception("Erro inesperado na aplicação")
-
-    return jsonify({
-        "erro": {
-            "mensagem": "Erro interno do servidor.",
-            "campos": {}
-        }
-    }), 500
+    return jsonify({"erro": {"mensagem": "Erro interno do servidor.", "campos": {}}}), 500
 
 
 def converter_categoria_id(valor):
     if valor is None or valor == "":
         return None
-
     try:
         identificador = int(valor)
-
         if identificador <= 0:
             raise ValueError
-
         return identificador
-
     except (ValueError, TypeError):
-        raise ErroValidacaoFinanceira(
-            "Categoria inválida.",
-            campo="categoria_id"
-        )
+        raise ErroValidacaoFinanceira("Categoria inválida.", campo="categoria_id")
 
 
 @app.route("/", methods=["GET"])
@@ -85,12 +70,8 @@ def pagina_inicial():
 @app.route("/api/categorias", methods=["GET"])
 def listar_categorias():
     tipo = request.args.get("tipo")
-
     categorias = gerenciador.listar_categorias(tipo=tipo)
-
-    return jsonify({
-        "dados": [c.para_dict() for c in categorias]
-    }), 200
+    return jsonify({"dados": [c.para_dict() for c in categorias]}), 200
 
 
 @app.route("/api/lancamentos", methods=["GET"])
@@ -101,9 +82,7 @@ def listar_lancamentos():
     tipo = request.args.get("tipo")
     busca = request.args.get("busca")
 
-    categoria_id = converter_categoria_id(
-        request.args.get("categoria_id")
-    )
+    categoria_id = converter_categoria_id(request.args.get("categoria_id"))
 
     lancamentos = gerenciador.consultar_lancamentos(
         mes=mes,
@@ -111,59 +90,33 @@ def listar_lancamentos():
         data_fim=data_fim,
         tipo=tipo,
         categoria_id=categoria_id,
-        busca=busca
+        busca=busca,
     )
-
-    return jsonify({
-        "dados": [t.para_dict() for t in lancamentos]
-    }), 200
+    return jsonify({"dados": [t.para_dict() for t in lancamentos]}), 200
 
 
 @app.route("/api/lancamentos", methods=["POST"])
 def criar_lancamento():
     dados = request.get_json(silent=True)
-
     if dados is None:
-        raise ErroValidacaoFinanceira(
-            "Corpo da requisição JSON ausente ou inválido."
-        )
-
+        raise ErroValidacaoFinanceira("Corpo da requisição JSON ausente ou inválido.")
     novo = gerenciador.cadastrar_lancamento(dados)
-
-    return jsonify({
-        "dados": novo.para_dict()
-    }), 201
+    return jsonify({"dados": novo.para_dict()}), 201
 
 
 @app.route("/api/lancamentos/<int:id_lancamento>", methods=["PUT"])
 def atualizar_lancamento(id_lancamento: int):
     dados = request.get_json(silent=True)
-
     if dados is None:
-        raise ErroValidacaoFinanceira(
-            "Corpo da requisição JSON ausente ou inválido."
-        )
-
-    atualizado = gerenciador.editar_lancamento(
-        id_lancamento,
-        dados
-    )
-
-    return jsonify({
-        "dados": atualizado.para_dict()
-    }), 200
+        raise ErroValidacaoFinanceira("Corpo da requisição JSON ausente ou inválido.")
+    atualizado = gerenciador.editar_lancamento(id_lancamento, dados)
+    return jsonify({"dados": atualizado.para_dict()}), 200
 
 
 @app.route("/api/lancamentos/<int:id_lancamento>", methods=["DELETE"])
 def remover_lancamento(id_lancamento: int):
     gerenciador.excluir_lancamento(id_lancamento)
-
-    return jsonify({
-        "dados": {
-            "id": id_lancamento,
-            "excluido": True
-        }
-    }), 200
+    return jsonify({"dados": {"id": id_lancamento, "excluido": True}}), 200
 
 
 @app.route("/api/resumo", methods=["GET"])
@@ -171,16 +124,10 @@ def obter_resumo():
     mes = request.args.get("mes")
     data_inicio = request.args.get("data_inicio")
     data_fim = request.args.get("data_fim")
-
     resumo = gerenciador.calcular_resumo(
-        mes=mes,
-        data_inicio=data_inicio,
-        data_fim=data_fim
+        mes=mes, data_inicio=data_inicio, data_fim=data_fim
     )
-
-    return jsonify({
-        "dados": resumo
-    }), 200
+    return jsonify({"dados": resumo}), 200
 
 
 @app.route("/api/exportar", methods=["GET"])
@@ -191,9 +138,7 @@ def exportar_csv():
     tipo = request.args.get("tipo")
     busca = request.args.get("busca")
 
-    categoria_id = converter_categoria_id(
-        request.args.get("categoria_id")
-    )
+    categoria_id = converter_categoria_id(request.args.get("categoria_id"))
 
     conteudo_csv = gerenciador.exportar_csv(
         mes=mes,
@@ -201,30 +146,18 @@ def exportar_csv():
         data_fim=data_fim,
         tipo=tipo,
         categoria_id=categoria_id,
-        busca=busca
+        busca=busca,
     )
 
     csv_com_bom = "\ufeff" + conteudo_csv
-
-    nome_arquivo = (
-        f"lancamentos-{mes}.csv"
-        if mes else "lancamentos.csv"
-    )
+    nome_arquivo = f"lancamentos-{mes}.csv" if mes else "lancamentos.csv"
 
     return Response(
         csv_com_bom,
         mimetype="text/csv; charset=utf-8",
-        headers={
-            "Content-Disposition": (
-                f"attachment; filename={nome_arquivo}"
-            )
-        }
+        headers={"Content-Disposition": f"attachment; filename={nome_arquivo}"},
     )
 
 
 if __name__ == "__main__":
-    app.run(
-        host="127.0.0.1",
-        port=5000,
-        debug=os.getenv("FLASK_DEBUG") == "1"
-    )
+    app.run(host="127.0.0.1", port=5000, debug=os.getenv("FLASK_DEBUG") == "1")
