@@ -287,11 +287,11 @@ As chaves privilegiadas do Supabase devem permanecer exclusivamente no servidor.
 | [Nome do integrante 2] | [Contribuição real] |
 | [Nome do integrante 3] | [Contribuição real] |
 
-**Instituição:** [Preencher]
+**Instituição:** [Faculdade Anhanguera Uberlândia]
 
 **Disciplinas:** Programação Orientada a Objetos e JavaScript
 
-**Período:** [Preencher]
+**Período:** [6° Período]
 
 ## Objetivo acadêmico
 
