@@ -1,411 +1,459 @@
 (() => {
   "use strict";
 
-  const data = window.FinanceData.source;
-  const elements = {
-    summaryMonth: document.getElementById("summary-month"),
-    listMonth: document.getElementById("list-month-filter"),
-    typeFilter: document.getElementById("type-filter"),
-    categoryFilter: document.getElementById("category-filter"),
-    searchFilter: document.getElementById("search-filter"),
-    body: document.getElementById("transactions-body"),
-    listState: document.getElementById("list-state"),
-    resultsCount: document.getElementById("results-count"),
-    dialog: document.getElementById("entry-dialog"),
-    form: document.getElementById("entry-form"),
-    formTitle: document.getElementById("form-title"),
-    formError: document.getElementById("form-error"),
-    category: document.getElementById("entry-category"),
-    typeInputs: Array.from(document.querySelectorAll('input[name="tipo"]')),
-    description: document.getElementById("entry-description"),
-    amount: document.getElementById("entry-amount"),
-    date: document.getElementById("entry-date"),
-    entryId: document.getElementById("entry-id"),
-    saveButton: document.getElementById("save-entry"),
-    feedback: document.getElementById("global-feedback")
-  };
+  const API = "/api";
+  const moeda = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+  const $ = (id) => document.getElementById(id);
+  const estado = { categorias: [], lancamentos: [], listaId: 0, resumoId: 0 };
+  let temporizadorBusca;
+  let temporizadorAviso;
 
-  let categories = [];
-  const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
-
-  function todayInSaoPaulo() {
-    const parts = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "America/Sao_Paulo",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit"
+  function hojeBrasil() {
+    const partes = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit"
     }).formatToParts(new Date());
-    const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-    return `${values.year}-${values.month}-${values.day}`;
+    const p = Object.fromEntries(partes.map((item) => [item.type, item.value]));
+    return `${p.year}-${p.month}-${p.day}`;
+  }
+  const reais = (centavos) => moeda.format((Number(centavos) || 0) / 100);
+  const dataBR = (iso) => /^\d{4}-\d\d-\d\d$/.test(String(iso || ""))
+    ? iso.split("-").reverse().join("/") : "—";
+
+  function aviso(texto, erro = false) {
+    const area = $("global-feedback");
+    area.textContent = texto;
+    area.classList.toggle("feedback-error", erro);
+    area.hidden = false;
+    clearTimeout(temporizadorAviso);
+    temporizadorAviso = setTimeout(() => { area.hidden = true; }, 7000);
   }
 
-  function formatDate(date) {
-    const [year, month, day] = date.split("-");
-    return `${day}/${month}/${year}`;
+  function status(texto, falhou = false) {
+    $("connection-status").textContent = texto;
+    $("status-dot").classList.remove("waiting");
+    $("status-dot").classList.toggle("status-error", falhou);
   }
 
-  function currentType() {
-    return elements.typeInputs.find((input) => input.checked).value;
-  }
-
-  function selectedFilters() {
-    const filters = {
-      mes: elements.listMonth.value,
-      tipo: elements.typeFilter.value,
-      categoria_id: elements.categoryFilter.value,
-      busca: elements.searchFilter.value.trim()
-    };
-    return Object.fromEntries(Object.entries(filters).filter(([, value]) => value));
-  }
-
-  function categoryName(id) {
-    const category = categories.find((item) => item.id === id);
-    return category ? category.nome : "Categoria removida";
-  }
-
-  function updateCategoryOptions() {
-    const type = currentType();
-    const options = categories.filter((category) => !type || category.tipo === type);
-    const selected = elements.category.value;
-    elements.category.replaceChildren(new Option("Selecione uma categoria", ""));
-    options.forEach((category) => elements.category.add(new Option(category.nome, String(category.id))));
-    if (options.some((category) => String(category.id) === selected)) elements.category.value = selected;
-  }
-
-  function setLoading(isLoading) {
-    elements.listState.hidden = !isLoading;
-    if (isLoading) {
-      elements.listState.textContent = "Carregando lançamentos...";
-      elements.body.replaceChildren();
-    }
-  }
-
-  function showFeedback(message, isError = false) {
-    elements.feedback.textContent = message;
-    elements.feedback.classList.toggle("feedback-error", isError);
-    elements.feedback.hidden = false;
-    window.clearTimeout(showFeedback.timeout);
-    showFeedback.timeout = window.setTimeout(() => { elements.feedback.hidden = true; }, 5000);
-  }
-
-  function showListError(error) {
-    elements.listState.textContent = error.message || "Não foi possível carregar os lançamentos.";
-    elements.listState.classList.add("state-error");
-    elements.listState.hidden = false;
-  }
-
-  function updateCount(count) {
-    elements.resultsCount.textContent = `${count} ${count === 1 ? "lançamento" : "lançamentos"}`;
-  }
-
-  function renderExpenseCategories(expenses) {
-    const container = document.getElementById("expense-category-list");
-    container.replaceChildren();
-    if (!expenses.length) {
-      const emptyState = document.createElement("p");
-      emptyState.className = "category-summary-state";
-      emptyState.textContent = "Nenhuma despesa neste período.";
-      container.append(emptyState);
-      return;
-    }
-
-    const largestExpense = Math.max(...expenses.map((expense) => expense.valor_centavos));
-    expenses.forEach((expense) => {
-      const item = document.createElement("div");
-      item.className = "category-summary-item";
-      const details = document.createElement("div");
-      details.className = "category-summary-details";
-      const name = document.createElement("span");
-      name.className = "category-summary-name";
-      name.textContent = expense.categoria_nome;
-      const amount = document.createElement("span");
-      amount.className = "category-summary-amount";
-      amount.textContent = money.format(expense.valor_centavos / 100);
-      const track = document.createElement("div");
-      track.className = "category-summary-track";
-      track.setAttribute("role", "img");
-      track.setAttribute("aria-label", `${expense.categoria_nome}: ${amount.textContent}`);
-      const bar = document.createElement("span");
-      bar.className = "category-summary-bar";
-      bar.style.width = `${Math.max(4, expense.valor_centavos / largestExpense * 100)}%`;
-      track.append(bar);
-      details.append(name, amount);
-      item.append(details, track);
-      container.append(item);
+  function query(filtros) {
+    const p = new URLSearchParams();
+    Object.entries(filtros).forEach(([chave, valor]) => {
+      if (valor !== "" && valor !== null && valor !== undefined) p.set(chave, String(valor));
     });
+    return p.toString() ? `?${p.toString()}` : "";
   }
 
-  function renderEntries(entries) {
-    elements.body.replaceChildren();
-    elements.listState.classList.remove("state-error");
-    if (!entries.length) {
-      elements.listState.textContent = "Nenhum lançamento encontrado. Ajuste os filtros ou cadastre uma movimentação.";
-      elements.listState.hidden = false;
-      updateCount(0);
-      return;
-    }
-    elements.listState.hidden = true;
-    updateCount(entries.length);
-    entries.forEach((entry) => {
-      const row = document.createElement("tr");
-      const descriptionCell = document.createElement("td");
-      const description = document.createElement("span");
-      description.className = "entry-description";
-      description.textContent = entry.descricao;
-      descriptionCell.append(description);
-
-      const categoryCell = document.createElement("td");
-      categoryCell.textContent = categoryName(entry.categoria_id);
-      const dateCell = document.createElement("td");
-      dateCell.textContent = formatDate(entry.data);
-      const typeCell = document.createElement("td");
-      const badge = document.createElement("span");
-      badge.className = `type-badge ${entry.tipo}`;
-      badge.textContent = entry.tipo === "receita" ? "Receita" : "Despesa";
-      typeCell.append(badge);
-      const amountCell = document.createElement("td");
-      amountCell.className = `amount-cell ${entry.tipo}`;
-      amountCell.textContent = `${entry.tipo === "receita" ? "+" : "−"} ${money.format(entry.valor_centavos / 100)}`;
-      const actionsCell = document.createElement("td");
-      actionsCell.className = "row-actions";
-      const editButton = document.createElement("button");
-      editButton.className = "icon-button row-action";
-      editButton.type = "button";
-      editButton.textContent = "✎";
-      editButton.setAttribute("aria-label", `Editar ${entry.descricao}`);
-      editButton.addEventListener("click", () => openEditForm(entry));
-      const deleteButton = document.createElement("button");
-      deleteButton.className = "icon-button row-action delete-action";
-      deleteButton.type = "button";
-      deleteButton.textContent = "×";
-      deleteButton.setAttribute("aria-label", `Excluir ${entry.descricao}`);
-      deleteButton.addEventListener("click", () => removeEntry(entry));
-      actionsCell.append(editButton, deleteButton);
-      row.append(descriptionCell, categoryCell, dateCell, typeCell, amountCell, actionsCell);
-      elements.body.append(row);
-    });
-  }
-
-  async function loadEntries() {
-    setLoading(true);
+  // API centralizada: trata erros de rede, HTTP e mensagens Flask.
+  async function api(caminho, metodo = "GET", dados = undefined, csv = false) {
+    let resposta;
     try {
-      const entries = await data.getEntries(selectedFilters());
-      renderEntries(entries);
-    } catch (error) {
-      showListError(error);
-      updateCount(0);
-      showFeedback(error.message || "Não foi possível carregar os lançamentos.", true);
+      resposta = await fetch(`${API}${caminho}`, {
+        method: metodo,
+        headers: dados === undefined ? {} : { "Content-Type": "application/json" },
+        body: dados === undefined ? undefined : JSON.stringify(dados),
+        cache: "no-store"
+      });
+    } catch (_) {
+      throw new Error("Não foi possível conectar ao Flask. Verifique se o servidor está ligado.");
     }
+    if (!resposta.ok) {
+      let conteudo = {};
+      try { conteudo = await resposta.json(); } catch (_) { /* resposta sem JSON */ }
+      const erro = new Error(conteudo?.erro?.mensagem || `Erro HTTP ${resposta.status}.`);
+      erro.campos = conteudo?.erro?.campos || {};
+      throw erro;
+    }
+    if (csv) return resposta.blob();
+    const json = await resposta.json();
+    if (!json || !("dados" in json)) throw new Error("Resposta inválida da API Flask.");
+    return json.dados;
   }
 
-  async function loadSummary() {
+  function tipoFormulario() {
+    return document.querySelector('input[name="tipo"]:checked')?.value || "despesa";
+  }
+  function preencherSelect(elemento, lista, texto) {
+    const antes = elemento.value;
+    elemento.replaceChildren(new Option(texto, ""));
+    lista.forEach((c) => elemento.add(new Option(c.nome, String(c.id))));
+    if (lista.some((c) => String(c.id) === antes)) elemento.value = antes;
+  }
+  function categoriasDoFormulario(manter = null) {
+    const select = $("entry-category");
+    const antes = manter === null ? select.value : String(manter);
+    const validas = estado.categorias.filter((c) => c.tipo === tipoFormulario());
+    preencherSelect(select, validas, "Selecione uma categoria");
+    if (validas.some((c) => String(c.id) === antes)) select.value = antes;
+  }
+  function nomeCategoria(id) {
+    return estado.categorias.find((c) => c.id === Number(id))?.nome || "Categoria não encontrada";
+  }
+
+  async function carregarCategorias() {
     try {
-      const summary = await data.getSummary(elements.summaryMonth.value);
-      document.getElementById("summary-income").textContent = money.format(summary.receitas_centavos / 100);
-      document.getElementById("summary-expense").textContent = money.format(summary.despesas_centavos / 100);
-      document.getElementById("summary-result").textContent = money.format(summary.resultado_centavos / 100);
-      document.getElementById("summary-balance").textContent = money.format(summary.saldo_acumulado_centavos / 100);
-      document.getElementById("summary-result").classList.toggle("negative-value", summary.resultado_centavos < 0);
-      document.getElementById("summary-balance").classList.toggle("negative-value", summary.saldo_acumulado_centavos < 0);
-      renderExpenseCategories(summary.despesas_por_categoria);
-    } catch (error) {
-      const container = document.getElementById("expense-category-list");
-      const errorState = document.createElement("p");
-      errorState.className = "category-summary-state";
-      errorState.textContent = "Não foi possível carregar as despesas por categoria.";
-      container.replaceChildren(errorState);
-      showFeedback(error.message || "Não foi possível carregar o resumo financeiro.", true);
+      const lista = await api("/categorias");
+      if (!Array.isArray(lista)) throw new Error("Lista de categorias inválida.");
+      estado.categorias = lista.map((c) => ({
+        ...c, id: Number(c.id), tipo: c.tipo || c.tipo_permitido
+      }));
+      preencherSelect($("category-filter"), estado.categorias, "Todas as categorias");
+      categoriasDoFormulario();
+      status("Conectado ao servidor");
+    } catch (erro) {
+      status("Não foi possível carregar as categorias", true);
+      aviso(erro.message, true);
+      $("entry-category").replaceChildren(new Option("Categorias indisponíveis", ""));
     }
   }
 
-  async function refresh() {
-    await Promise.all([loadEntries(), loadSummary()]);
-  }
-
-  function clearFieldErrors() {
-    elements.form.querySelectorAll(".field-error").forEach((field) => { field.textContent = ""; });
-    elements.form.querySelectorAll("[aria-invalid='true']").forEach((field) => field.removeAttribute("aria-invalid"));
-    elements.formError.hidden = true;
-    elements.formError.textContent = "";
-  }
-
-  function showFieldErrors(errors) {
-    clearFieldErrors();
-    const mapping = {
-      descricao: "error-descricao",
-      valor_centavos: "error-valor_centavos",
-      data: "error-data",
-      categoria_id: "error-categoria_id",
-      tipo: null
-    };
-    Object.entries(errors).forEach(([field, message]) => {
-      const errorElement = mapping[field] ? document.getElementById(mapping[field]) : elements.form.querySelector('[data-error-for="tipo"]');
-      if (errorElement) errorElement.textContent = message;
-      const input = {
-        descricao: elements.description,
-        valor_centavos: elements.amount,
-        data: elements.date,
-        categoria_id: elements.category
-      }[field];
-      if (input) input.setAttribute("aria-invalid", "true");
-    });
-  }
-
-  function validateForm() {
-    const errors = {};
-    const description = elements.description.value.trim();
-    const amountValue = elements.amount.value.trim();
-    const normalizedAmount = amountValue.replace(",", ".");
-    const cents = Math.round(Number(normalizedAmount) * 100);
-    const date = elements.date.value;
-    const categoryId = Number(elements.category.value);
-    const type = currentType();
-
-    if (!description) errors.descricao = "Informe a descrição do lançamento.";
-    else if (description.length > 120) errors.descricao = "A descrição deve ter no máximo 120 caracteres.";
-    if (!/^\d+(?:[.,]\d{1,2})?$/.test(amountValue) || !Number.isFinite(Number(normalizedAmount)) || Number(normalizedAmount) <= 0 || !Number.isSafeInteger(cents)) {
-      errors.valor_centavos = "Informe um valor maior que zero, com até duas casas decimais.";
-    }
-    if (!date) errors.data = "Informe a data do lançamento.";
-    else if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || new Date(`${date}T00:00:00Z`).toISOString().slice(0, 10) !== date) {
-      errors.data = "Informe uma data válida.";
-    } else if (date > todayInSaoPaulo()) errors.data = "A data não pode ser posterior a hoje.";
-    const category = categories.find((item) => item.id === categoryId);
-    if (!categoryId || !category) errors.categoria_id = "Selecione uma categoria.";
-    else if (category.tipo !== type) errors.categoria_id = "A categoria selecionada não pertence ao tipo informado.";
+  function filtros() {
     return {
-      errors,
-      payload: {
-        descricao: description,
-        valor_centavos: cents,
-        data: date,
-        tipo: type,
-        categoria_id: categoryId
-      }
+      mes: $("list-month-filter").value,
+      tipo: $("type-filter").value,
+      categoria_id: $("category-filter").value,
+      busca: $("search-filter").value.trim()
     };
   }
 
-  function openCreateForm() {
-    elements.form.reset();
-    elements.entryId.value = "";
-    elements.formTitle.textContent = "Novo lançamento";
-    elements.saveButton.textContent = "Salvar lançamento";
-    elements.date.value = todayInSaoPaulo();
-    elements.typeInputs[0].checked = true;
-    updateCategoryOptions();
-    clearFieldErrors();
-    elements.dialog.showModal();
-    elements.description.focus();
+  function td(texto, classe = "") {
+    const celula = document.createElement("td");
+    celula.textContent = texto;
+    if (classe) celula.className = classe;
+    return celula;
   }
 
-  function openEditForm(entry) {
-    elements.form.reset();
-    elements.entryId.value = String(entry.id);
-    elements.formTitle.textContent = "Editar lançamento";
-    elements.saveButton.textContent = "Salvar alterações";
-    elements.description.value = entry.descricao;
-    elements.amount.value = (entry.valor_centavos / 100).toFixed(2).replace(".", ",");
-    elements.date.value = entry.data;
-    elements.typeInputs.forEach((input) => { input.checked = input.value === entry.tipo; });
-    updateCategoryOptions();
-    elements.category.value = String(entry.categoria_id);
-    clearFieldErrors();
-    elements.dialog.showModal();
-    elements.description.focus();
+  function exibirLancamentos(lista) {
+    const corpo = $("transactions-body");
+    const mensagem = $("list-state");
+    corpo.replaceChildren();
+    $("results-count").textContent = `${lista.length} ${lista.length === 1 ? "lançamento" : "lançamentos"}`;
+    mensagem.hidden = lista.length > 0;
+    mensagem.classList.remove("state-error");
+    mensagem.textContent = lista.length ? "" : "Nenhum lançamento encontrado nesse período.";
+
+    lista.forEach((registro) => {
+      const linha = document.createElement("tr");
+      const descricao = td(registro.descricao);
+      const categoria = td(nomeCategoria(registro.categoria_id));
+      const data = td(dataBR(registro.data));
+      const tipo = td("");
+      const tag = document.createElement("span");
+      tag.className = `type-badge ${registro.tipo}`;
+      tag.textContent = registro.tipo === "receita" ? "Receita" : "Despesa";
+      tipo.append(tag);
+      const valor = td(`${registro.tipo === "receita" ? "+" : "−"} ${reais(registro.valor_centavos)}`, `amount-cell ${registro.tipo}`);
+      const acoes = td("", "row-actions");
+
+      const editar = document.createElement("button");
+      editar.type = "button";
+      editar.className = "icon-button row-action";
+      editar.textContent = "✎";
+      editar.setAttribute("aria-label", `Editar ${registro.descricao}`);
+      editar.addEventListener("click", () => abrirEdicao(registro));
+
+      const excluir = document.createElement("button");
+      excluir.type = "button";
+      excluir.className = "icon-button row-action delete-action";
+      excluir.textContent = "×";
+      excluir.setAttribute("aria-label", `Excluir ${registro.descricao}`);
+      excluir.addEventListener("click", () => excluirLancamento(registro));
+
+      acoes.append(editar, excluir);
+      linha.append(descricao, categoria, data, tipo, valor, acoes);
+      corpo.append(linha);
+    });
   }
 
-  async function submitForm(event) {
-    event.preventDefault();
-    clearFieldErrors();
-    const { errors, payload } = validateForm();
-    if (Object.keys(errors).length) {
-      showFieldErrors(errors);
-      const firstInvalid = elements.form.querySelector("[aria-invalid='true']");
-      if (firstInvalid) firstInvalid.focus();
+  async function carregarLancamentos() {
+    const atual = ++estado.listaId;
+    const mensagem = $("list-state");
+    mensagem.hidden = false;
+    mensagem.classList.remove("state-error");
+    mensagem.textContent = "Carregando lançamentos...";
+    try {
+      const lista = await api(`/lancamentos${query(filtros())}`);
+      if (atual !== estado.listaId) return;
+      if (!Array.isArray(lista)) throw new Error("Lista de lançamentos inválida.");
+      estado.lancamentos = lista;
+      exibirLancamentos(lista);
+    } catch (erro) {
+      if (atual !== estado.listaId) return;
+      estado.lancamentos = [];
+      $("transactions-body").replaceChildren();
+      $("results-count").textContent = "0 lançamentos";
+      mensagem.hidden = false;
+      mensagem.classList.add("state-error");
+      mensagem.textContent = erro.message;
+      aviso(erro.message, true);
+    }
+  }
+
+  function exibirCategoriasResumo(lista) {
+    const area = $("expense-category-list");
+    area.replaceChildren();
+    if (!lista.length) {
+      const vazio = document.createElement("p");
+      vazio.className = "category-summary-state";
+      vazio.textContent = "Nenhuma despesa no mês selecionado.";
+      area.append(vazio);
       return;
     }
+    const maior = Math.max(...lista.map((c) => Number(c.valor_centavos)), 1);
+    lista.forEach((categoria) => {
+      const bloco = document.createElement("div");
+      bloco.className = "category-summary-item";
+      const cabecalho = document.createElement("div");
+      cabecalho.className = "category-summary-details";
+      const nome = document.createElement("span");
+      nome.className = "category-summary-name";
+      nome.textContent = categoria.categoria_nome;
+      const total = document.createElement("strong");
+      total.className = "category-summary-amount";
+      total.textContent = reais(categoria.valor_centavos);
+      cabecalho.append(nome, total);
+      const trilha = document.createElement("div");
+      trilha.className = "category-summary-track";
+      const barra = document.createElement("span");
+      barra.className = "category-summary-bar";
+      barra.style.width = `${Math.max(3, 100 * categoria.valor_centavos / maior)}%`;
+      trilha.append(barra);
+      bloco.append(cabecalho, trilha);
+      area.append(bloco);
+    });
+  }
 
-    elements.saveButton.disabled = true;
-    elements.saveButton.textContent = "Salvando...";
+  async function carregarResumo() {
+    const atual = ++estado.resumoId;
     try {
-      await data.saveEntry(payload, elements.entryId.value || null);
-      elements.dialog.close();
-      showFeedback(elements.entryId.value ? "Lançamento atualizado com sucesso." : "Lançamento cadastrado com sucesso.");
-      await refresh();
-    } catch (error) {
-      if (error.fields && Object.keys(error.fields).length) showFieldErrors(error.fields);
-      elements.formError.textContent = error.message || "Não foi possível salvar. Tente novamente.";
-      elements.formError.hidden = false;
+      const resumo = await api(`/resumo${query({ mes: $("summary-month").value })}`);
+      if (atual !== estado.resumoId) return;
+      [
+        ["summary-income", resumo.receitas_centavos],
+        ["summary-expense", resumo.despesas_centavos],
+        ["summary-result", resumo.resultado_centavos],
+        ["summary-balance", resumo.saldo_acumulado_centavos]
+      ].forEach(([id, centavos]) => {
+        $(id).textContent = reais(centavos);
+        $(id).classList.toggle("negative-value", Number(centavos) < 0);
+      });
+      exibirCategoriasResumo(Array.isArray(resumo.despesas_por_categoria) ? resumo.despesas_por_categoria : []);
+    } catch (erro) {
+      if (atual !== estado.resumoId) return;
+      $("expense-category-list").textContent = "Não foi possível carregar o resumo.";
+      aviso(erro.message, true);
+    }
+  }
+
+  function limparErros() {
+    $("form-error").hidden = true;
+    $("form-error").textContent = "";
+    document.querySelectorAll(".field-error").forEach((e) => { e.textContent = ""; });
+    $("entry-form").querySelectorAll('[aria-invalid="true"]').forEach((e) => e.removeAttribute("aria-invalid"));
+  }
+  function mostrarErros(campos) {
+    Object.entries(campos).forEach(([campo, texto]) => {
+      const idCampo = {
+        descricao: "entry-description", valor_centavos: "entry-amount",
+        data: "entry-date", categoria_id: "entry-category"
+      }[campo];
+      const erro = $(`error-${campo}`);
+      if (erro) erro.textContent = texto;
+      if (idCampo) $(idCampo).setAttribute("aria-invalid", "true");
+    });
+  }
+
+  // Converte "1.234,56" e "1234.56" em 123456 centavos, sem float.
+  function analisarValor(texto) {
+    const normal = String(texto).trim().replace(/^R\$\s*/, "").replace(/\s/g, "");
+    let base = normal;
+    if (/^\d{1,3}(\.\d{3})+(,\d{1,2})?$/.test(normal)) base = normal.replace(/\./g, "");
+    if (!/^\d+([.,]\d{1,2})?$/.test(base)) return null;
+    const [inteiros, decimais = ""] = base.replace(",", ".").split(".");
+    const centavos = Number(inteiros) * 100 + Number(decimais.padEnd(2, "0"));
+    return Number.isSafeInteger(centavos) && centavos > 0 ? centavos : null;
+  }
+
+  function validar() {
+    const descricao = $("entry-description").value.trim();
+    const valor_centavos = analisarValor($("entry-amount").value);
+    const data = $("entry-date").value;
+    const tipo = tipoFormulario();
+    const categoria_id = Number($("entry-category").value);
+    const erros = {};
+    if (!descricao || descricao.length > 120) erros.descricao = "Informe uma descrição de até 120 caracteres.";
+    if (valor_centavos === null) erros.valor_centavos = "Informe um valor maior que zero (ex.: 50,00).";
+    const parsed = /^\d{4}-\d\d-\d\d$/.test(data) ? new Date(`${data}T12:00:00Z`) : new Date(NaN);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== data || data > hojeBrasil()) {
+      erros.data = "Informe uma data válida, não futura.";
+    }
+    if (!estado.categorias.some((c) => c.id === categoria_id && c.tipo === tipo)) {
+      erros.categoria_id = "Selecione uma categoria compatível com o tipo.";
+    }
+    return { erros, payload: { descricao, valor_centavos, data, tipo, categoria_id } };
+  }
+
+  function abrirNovo() {
+    const modal = $("entry-dialog");
+    $("entry-form").reset();
+    $("entry-id").value = "";
+    $("form-title").textContent = "Novo lançamento";
+    $("save-entry").textContent = "Salvar lançamento";
+    document.querySelector('input[name="tipo"][value="despesa"]').checked = true;
+    $("entry-date").max = hojeBrasil();
+    $("entry-date").value = hojeBrasil();
+    categoriasDoFormulario();
+    limparErros();
+    if (!modal.open) modal.showModal();
+    $("entry-description").focus();
+    if (!estado.categorias.length) {
+      $("form-error").textContent = "Categorias indisponíveis. Confira a conexão do Flask com o Supabase.";
+      $("form-error").hidden = false;
+    }
+  }
+
+  function abrirEdicao(registro) {
+    $("entry-form").reset();
+    $("entry-id").value = registro.id;
+    $("form-title").textContent = "Editar lançamento";
+    $("save-entry").textContent = "Salvar alterações";
+    $("entry-description").value = registro.descricao;
+    $("entry-amount").value = (registro.valor_centavos / 100).toFixed(2).replace(".", ",");
+    $("entry-date").max = hojeBrasil();
+    $("entry-date").value = registro.data;
+    document.querySelector(`input[name="tipo"][value="${registro.tipo}"]`).checked = true;
+    categoriasDoFormulario(registro.categoria_id);
+    limparErros();
+    if (!$("entry-dialog").open) $("entry-dialog").showModal();
+    $("entry-description").focus();
+  }
+
+  async function salvar(evento) {
+    evento.preventDefault();
+    limparErros();
+    const { erros, payload } = validar();
+    if (Object.keys(erros).length) {
+      mostrarErros(erros);
+      $("entry-form").querySelector('[aria-invalid="true"]')?.focus();
+      return;
+    }
+    const id = $("entry-id").value;
+    const botao = $("save-entry");
+    botao.disabled = true;
+    botao.textContent = "Salvando...";
+    try {
+      await api(id ? `/lancamentos/${id}` : "/lancamentos", id ? "PUT" : "POST", payload);
+      $("entry-dialog").close();
+      $("list-month-filter").value = payload.data.slice(0, 7);
+      $("summary-month").value = payload.data.slice(0, 7);
+      $("type-filter").value = "";
+      $("category-filter").value = "";
+      $("search-filter").value = "";
+      aviso(id ? "Lançamento atualizado com sucesso!" : "Lançamento cadastrado com sucesso!");
+      await Promise.all([carregarLancamentos(), carregarResumo()]);
+    } catch (erro) {
+      mostrarErros(erro.campos || {});
+      $("form-error").textContent = erro.message;
+      $("form-error").hidden = false;
     } finally {
-      elements.saveButton.disabled = false;
-      elements.saveButton.textContent = elements.entryId.value ? "Salvar alterações" : "Salvar lançamento";
+      botao.disabled = false;
+      botao.textContent = id ? "Salvar alterações" : "Salvar lançamento";
     }
   }
 
-  async function removeEntry(entry) {
-    if (!window.confirm(`Excluir o lançamento "${entry.descricao}"? Esta ação não pode ser desfeita.`)) return;
+  async function excluirLancamento(registro) {
+    if (!window.confirm(`Excluir "${registro.descricao}"? Essa operação não pode ser desfeita.`)) return;
     try {
-      await data.deleteEntry(entry.id);
-      showFeedback("Lançamento excluído com sucesso.");
-      await refresh();
-    } catch (error) {
-      showFeedback(error.message || "Não foi possível excluir o lançamento.", true);
-    }
+      await api(`/lancamentos/${registro.id}`, "DELETE");
+      aviso("Lançamento excluído com sucesso!");
+      await Promise.all([carregarLancamentos(), carregarResumo()]);
+    } catch (erro) { aviso(erro.message, true); }
   }
 
-  async function exportEntries() {
-    const button = document.getElementById("export-button");
-    button.disabled = true;
+  async function exportarCSV() {
+    const botao = $("export-button");
+    botao.disabled = true;
     try {
-      await data.exportEntries(selectedFilters());
-      showFeedback("Sua exportação CSV está pronta.");
-    } catch (error) {
-      showFeedback(error.message || "Não foi possível exportar os lançamentos.", true);
-    } finally {
-      button.disabled = false;
-    }
+      const arquivo = await api(`/exportar${query(filtros())}`, "GET", undefined, true);
+      const url = URL.createObjectURL(arquivo);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filtros().mes ? `lancamentos-${filtros().mes}.csv` : "lancamentos.csv";
+      document.body.append(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      aviso("Arquivo CSV exportado!");
+    } catch (erro) { aviso(erro.message, true); }
+    finally { botao.disabled = false; }
   }
 
-  async function initialize() {
+  function navegar() {
+    const hash = location.hash === "#lancamentos" ? "#lancamentos" : "#painel";
+    document.querySelectorAll(".nav-link").forEach((link) => {
+      const atual = link.getAttribute("href") === hash;
+      link.classList.toggle("active", atual);
+      if (atual) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    });
+    $("current-section").textContent = hash === "#lancamentos" ? "Lançamentos" : "Painel";
+  }
+
+  function registrarEventos() {
+    // Eventos registrados ANTES de consultar a API. Falhas do banco não travam o modal.
+    $("new-entry-button").addEventListener("click", abrirNovo);
+    $("close-dialog").addEventListener("click", () => $("entry-dialog").close());
+    $("cancel-dialog").addEventListener("click", () => $("entry-dialog").close());
+    $("entry-form").addEventListener("submit", salvar);
+    document.querySelectorAll('input[name="tipo"]').forEach((r) => r.addEventListener("change", () => categoriasDoFormulario()));
+    $("list-month-filter").addEventListener("change", carregarLancamentos);
+    $("type-filter").addEventListener("change", carregarLancamentos);
+    $("category-filter").addEventListener("change", carregarLancamentos);
+    $("summary-month").addEventListener("change", carregarResumo);
+    $("search-filter").addEventListener("input", () => {
+      clearTimeout(temporizadorBusca);
+      temporizadorBusca = setTimeout(carregarLancamentos, 250);
+    });
+    $("clear-filters").addEventListener("click", () => {
+      $("list-month-filter").value = "";
+      $("type-filter").value = "";
+      $("category-filter").value = "";
+      $("search-filter").value = "";
+      carregarLancamentos();
+    });
+    $("export-button").addEventListener("click", exportarCSV);
+    $("entry-dialog").addEventListener("click", (evento) => {
+      const modal = $("entry-dialog");
+      const r = modal.getBoundingClientRect();
+      if (evento.target === modal && (evento.clientX < r.left || evento.clientX > r.right || evento.clientY < r.top || evento.clientY > r.bottom)) modal.close();
+    });
+    window.addEventListener("hashchange", navegar);
+    navegar();
+  }
+
+  async function iniciar() {
     try {
-      document.getElementById("current-date-label").textContent = new Intl.DateTimeFormat("pt-BR", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        timeZone: "America/Sao_Paulo"
-      }).format(new Date()).toLocaleUpperCase("pt-BR");
-      categories = await data.getCategories();
-      categories.forEach((category) => elements.categoryFilter.add(new Option(category.nome, String(category.id))));
-      updateCategoryOptions();
-      elements.date.max = todayInSaoPaulo();
-      await refresh();
-    } catch (error) {
-      showFeedback(error.message || "Não foi possível iniciar o gerenciador financeiro.", true);
-      showListError(error);
+      status("JavaScript ativo • conectando...");
+      registrarEventos();
+      const hoje = hojeBrasil();
+      $("summary-month").value = hoje.slice(0, 7);
+      $("list-month-filter").value = hoje.slice(0, 7);
+      $("entry-date").max = hoje;
+      $("current-date-label").textContent = new Intl.DateTimeFormat("pt-BR", {
+        timeZone: "America/Sao_Paulo", weekday: "long", day: "numeric", month: "long"
+      }).format(new Date()).toUpperCase();
+      await carregarCategorias();
+      // Erros nestas duas consultas não interrompem os eventos da página.
+      await Promise.all([carregarLancamentos(), carregarResumo()]);
+    } catch (erro) {
+      console.error("Erro ao iniciar o frontend:", erro);
+      status("Erro de inicialização do JavaScript", true);
+      aviso(erro.message, true);
     }
   }
 
-  document.getElementById("new-entry-button").addEventListener("click", openCreateForm);
-  document.getElementById("close-dialog").addEventListener("click", () => elements.dialog.close());
-  document.getElementById("cancel-dialog").addEventListener("click", () => elements.dialog.close());
-  elements.form.addEventListener("submit", submitForm);
-  elements.typeInputs.forEach((input) => input.addEventListener("change", updateCategoryOptions));
-  elements.summaryMonth.addEventListener("change", loadSummary);
-  [elements.listMonth, elements.typeFilter, elements.categoryFilter].forEach((input) => input.addEventListener("change", loadEntries));
-  elements.searchFilter.addEventListener("input", () => {
-    window.clearTimeout(elements.searchFilter.debounce);
-    elements.searchFilter.debounce = window.setTimeout(loadEntries, 180);
-  });
-  document.getElementById("clear-filters").addEventListener("click", () => {
-    elements.listMonth.value = "";
-    elements.typeFilter.value = "";
-    elements.categoryFilter.value = "";
-    elements.searchFilter.value = "";
-    loadEntries();
-  });
-  document.getElementById("export-button").addEventListener("click", exportEntries);
-  elements.dialog.addEventListener("click", (event) => {
-    if (event.target === elements.dialog) elements.dialog.close();
-  });
-  initialize();
+  // Como o script fica no fim do <body>, o HTML já está disponível.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", iniciar, { once: true });
+  } else {
+    iniciar();
+  }
 })();
