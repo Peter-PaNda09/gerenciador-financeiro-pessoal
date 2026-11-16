@@ -5,10 +5,8 @@ from models import Despesa, ErroValidacaoFinanceira, Receita, RegistroNaoEncontr
 from repositories.memoria import RepositorioTransacoesMemoria
 
 
-class TestRepositorioMemoria(unittest.TestCase):
-    def setUp(self):
-        self.repo = RepositorioTransacoesMemoria()
-
+class ContratoRepositorio:
+    """Os mesmos comportamentos devem funcionar em memória e no SQLite."""
     def despesa(self, data="2026-11-05", valor=45000):
         return Despesa("Mercado", valor, data, self.repo.buscar_categoria_por_id(2))
 
@@ -90,10 +88,18 @@ class TestRepositorioMemoria(unittest.TestCase):
 
     def test_instancias_nao_compartilham_dados(self):
         self.repo.salvar(self.despesa())
-        self.assertEqual(RepositorioTransacoesMemoria().listar(), [])
+        self.assertEqual(self.criar_repositorio_vazio().listar(), [])
 
     def test_cadastros_simultaneos_recebem_ids_unicos(self):
         with ThreadPoolExecutor(max_workers=4) as pool:
             salvas = list(pool.map(lambda _: self.repo.salvar(self.despesa()), range(30)))
         self.assertEqual({t.id for t in salvas}, set(range(1, 31)))
         self.assertEqual(len(self.repo.listar()), 30)
+
+
+class TestRepositorioMemoria(ContratoRepositorio, unittest.TestCase):
+    def setUp(self):
+        self.repo = RepositorioTransacoesMemoria()
+
+    def criar_repositorio_vazio(self):
+        return RepositorioTransacoesMemoria()

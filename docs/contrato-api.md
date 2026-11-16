@@ -1,6 +1,7 @@
 # Contrato da API - Gerenciador Financeiro Pessoal
 
-**Versão:** 1.0 - 11/11/2026  
+**Versão:** 1.1 - 16/11/2026
+
 **Equipe:** JV Guerra, Marcos, Igor, JV Peixoto e Peterson.  
 **Validação:** revisar em conjunto na issue #1 antes de considerar o contrato aprovado.
 
@@ -74,7 +75,7 @@ Este documento define o padrão de comunicação entre a interface JavaScript e 
 | --- | --- | --- | --- |
 | `id` | número inteiro | Não | Identificador gerado pelo sistema; permanece igual na edição. |
 | `descricao` | string | Sim, obrigatório | De 1 a 120 caracteres após remover espaços nas extremidades. |
-| `valor_centavos` | número inteiro | Sim, obrigatório | Maior que zero; não aceitar string, booleano ou número com parte decimal. |
+| `valor_centavos` | número inteiro | Sim, obrigatório | Maior que zero, até 9.223.372.036.854.775.807 (limite inteiro do SQLite); não aceitar string, booleano ou número com parte decimal. |
 | `data` | string | Sim, obrigatório | Data existente em `AAAA-MM-DD`, igual ou anterior à data atual. |
 | `tipo` | string | Sim, obrigatório | Exatamente `receita` ou `despesa`, em minúsculas. |
 | `categoria_id` | número inteiro | Sim, obrigatório | Categoria existente e compatível com o tipo do lançamento. |
@@ -450,3 +451,19 @@ Mudanças em campos, rotas, filtros ou respostas devem ser discutidas na issue c
 | Versão | Data | Mudança |
 | --- | --- | --- |
 | 1.0 | 11/11/2026 | Contrato inicial para revisão da equipe. |
+| 1.1 | 16/11/2026 | SQLite definido como persistência local; documentado o limite de centavos do banco, preservando campos e rotas. |
+
+## 11. Persistência local SQLite
+
+- O armazenamento padrão é o arquivo `instance/financeiro.sqlite3`, criado automaticamente pela aplicação.
+- As tabelas são `categorias` e `lancamentos`; nomes e IDs das seis categorias seguem a seção 4.
+- Na primeira execução, o banco começa sem lançamentos. Reiniciar a aplicação preserva os registros e a sequência de IDs.
+- Reabrir o banco não recria nem apaga lançamentos e não duplica categorias.
+- As rotas mantêm centavos inteiros e os mesmos envelopes `dados`, `meta` e `erro` deste documento.
+- Valores acima do limite inteiro do banco são rejeitados com 400/VALIDACAO no campo `valor_centavos`, sem gravação parcial.
+- Categorias não podem ser alteradas pela API. Um arquivo com categorias incompatíveis com o contrato gera erro de inicialização em vez de ter seus dados sobrescritos.
+- O arquivo do banco é local e não é enviado ao GitHub. Outra máquina cria seu próprio banco.
+- O repositório em memória permanece disponível para testes; a instância padrão do Flask usa SQLite.
+- O escopo implementado nesta entrega é GET de categorias, POST de lançamentos e GET de lançamentos. As demais rotas acima continuam especificadas para próximas entregas.
+
+Detalhes internos e teste manual: [persistencia-sqlite.md](persistencia-sqlite.md).

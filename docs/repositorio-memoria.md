@@ -1,6 +1,6 @@
 # Repositório em memória: acordo interno
 
-O contrato HTTP continua em [contrato-api.md](contrato-api.md). Este arquivo documenta o armazenamento provisório para Marcos e Peterson integrarem suas partes.
+O contrato HTTP continua em [contrato-api.md](contrato-api.md). Este arquivo documenta o armazenamento em memória, mantido para testes isolados. O padrão do Flask agora é o [repositório SQLite](persistencia-sqlite.md), que oferece os mesmos métodos e preserva os registros após reinício.
 
 ## Métodos disponíveis
 
@@ -43,6 +43,6 @@ print(repositorio.listar()[0].impacto_no_saldo())  # -45000
 
 O armazenamento é uma coleção de objetos Python. Reiniciar o processo cria uma coleção vazia. Cada aplicação criada por `create_app()` recebe uma instância independente, a menos que o repositório seja passado explicitamente.
 
-As rotas atuais validam o contrato e instanciam as classes de domínio antes de chamar o repositório. Esse é o ponto provisório de integração: quando o serviço de Marcos estiver compatível, as rotas delegam a ele cadastro e consulta. Não é necessário criar outra classe de transação nem alterar o formato público da API.
+Para usar esta versão em um teste, passe `create_app(repositorio=RepositorioTransacoesMemoria())`. As rotas validam o contrato e instanciam as classes de domínio antes de chamar o repositório. Quando o serviço de Marcos estiver compatível, as rotas delegam a ele cadastro e consulta. Não é necessário criar outra classe de transação nem alterar o formato público da API.
 
-Na troca por um banco, preservar os métodos e o comportamento documentados; acrescentar os testes de persistência após reinício. A implementação HTTP inicial contém somente categorias, POST de lançamentos e GET de lançamentos.
+A versão SQLite já preserva esses métodos e possui testes de persistência após reinício. A implementação HTTP inicial contém somente categorias, POST de lançamentos e GET de lançamentos.

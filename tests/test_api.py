@@ -1,13 +1,18 @@
 import unittest
 from datetime import date, timedelta
 from unittest.mock import patch
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from app import CAMPOS_LANCAMENTO, create_app
 
 
 class TestApiLancamentos(unittest.TestCase):
     def setUp(self):
-        self.app = create_app()
+        self.pasta = TemporaryDirectory()
+        self.addCleanup(self.pasta.cleanup)
+        self.caminho_banco = Path(self.pasta.name) / "teste.sqlite3"
+        self.app = create_app(caminho_banco=self.caminho_banco)
         self.app.config["TESTING"] = True
         self.client = self.app.test_client()
         self.repo = self.app.extensions["repositorio_transacoes"]
@@ -135,9 +140,34 @@ class TestApiLancamentos(unittest.TestCase):
             with self.subTest(consulta=consulta):
                 self.assert_erro(self.client.get("/api/lancamentos?" + consulta), 400, "VALIDACAO")
 
-    def test_novo_app_perde_lancamentos_como_documentado(self):
+    def test_novo_app_recupera_lancamentos_do_mesmo_arquivo(self):
         self.cadastrar()
-        self.assertEqual(create_app().test_client().get("/api/lancamentos").get_json()["dados"], [])
+        nova_app = create_app(caminho_banco=self.caminho_banco)
+        dados = nova_app.test_client().get("/api/lancamentos").get_json()
+        self.assertEqual(dados, {"dados": [{"id": 1, **self.payload}], "meta": {"quantidade": 1}})
+        self.assertEqual(nova_app.config["ARMAZENAMENTO"], "sqlite")
+
+    def test_arquivos_diferentes_nao_compartilham_dados(self):
+        self.cadastrar()
+        outro_caminho = Path(self.pasta.name) / "outro.sqlite3"
+        outra_app = create_app(caminho_banco=outro_caminho)
+        self.assertEqual(outra_app.test_client().get("/api/lancamentos").get_json()["dados"], [])
+
+    def test_limites_de_inteiros_sqlite_retornam_validacao(self):
+        self.assert_erro(self.cadastrar(valor_centavos=2**63), 400, "VALIDACAO", "valor_centavos")
+        self.assert_erro(self.client.get("/api/lancamentos?categoria_id=" + str(2**63)), 400, "VALIDACAO", "categoria_id")
+        self.assertEqual(self.repo.listar(), [])
+
+    def test_repositorio_em_memoria_pode_ser_injetado(self):
+        from repositories.memoria import RepositorioTransacoesMemoria
+        memoria = RepositorioTransacoesMemoria()
+        app_memoria = create_app(repositorio=memoria)
+        cliente = app_memoria.test_client()
+        self.assertEqual(cliente.post("/api/lancamentos", json=self.payload).status_code, 201)
+        self.assertEqual(len(memoria.listar()), 1)
+        self.assertEqual(app_memoria.config["ARMAZENAMENTO"], "memoria")
+        self.assertIsNone(app_memoria.config["DATABASE"])
+        self.assertEqual(self.repo.listar(), [])
 
     def test_rotas_futuras_nao_estao_implementadas(self):
         self.assert_erro(self.client.get("/api/resumo?mes=2026-11"), 404, "NAO_ENCONTRADO")

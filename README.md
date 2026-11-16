@@ -12,16 +12,20 @@ Projeto integrado de Python/Programação Orientada a Objetos e HTML/CSS/JavaScr
 | JV Peixoto | Interface HTML/CSS/JavaScript. |
 | Peterson | Gestão, integração, persistência e exportação. |
 
-## Entrega inicial da branch PETER
+## Persistência SQLite na branch PETER
 
-Esta etapa implementa o repositório em memória e o primeiro fluxo HTTP usando as classes reais de JV Guerra:
+Esta etapa usa um repositório SQLite para guardar os lançamentos no computador, mantendo as classes reais de JV Guerra e o padrão HTTP combinado:
 
 - `GET /api/categorias`: seis categorias predefinidas.
 - `POST /api/lancamentos`: cadastro de receitas e despesas em centavos.
 - `GET /api/lancamentos`: consulta com filtros de mês, tipo, categoria e descrição.
 - Validações e respostas JSON conforme [docs/contrato-api.md](docs/contrato-api.md).
 
-O repositório começa sem lançamentos. Atualizar o navegador mantém os dados enquanto o servidor continua rodando. **Encerrar ou reiniciar o processo apaga os lançamentos.** Instâncias/processos diferentes não compartilham dados. Não há banco de dados ou credenciais nesta etapa.
+Na primeira execução, a aplicação cria automaticamente `instance/financeiro.sqlite3`, as tabelas e as seis categorias com os IDs do contrato. O banco começa sem lançamentos. **Os novos cadastros continuam salvos ao encerrar e reiniciar o Flask.** A inicialização não apaga registros nem duplica categorias.
+
+O caminho padrão é relativo à pasta da aplicação, não ao terminal usado para iniciá-la. Aplicações que usam o mesmo arquivo recuperam os mesmos dados; computadores ou arquivos diferentes têm bases independentes. Não é necessário configurar Supabase, conta online ou credenciais.
+
+O arquivo do banco fica fora do Git. Compartilhar o código no GitHub não envia os lançamentos cadastrados. O repositório em memória continua disponível para testes isolados. Registros de uma execução antiga em memória não são transferidos automaticamente para o SQLite.
 
 PUT, DELETE, resumo, exportação e interface integrada ainda são próximas etapas. Os métodos de atualizar/excluir já existem no repositório para o serviço utilizar, mas as rotas correspondentes ainda não foram implementadas.
 
@@ -71,19 +75,36 @@ Na pasta do projeto:
 .\.venv\Scripts\python.exe -m unittest discover -v
 ```
 
-A suíte inclui os testes de domínio de JV Guerra, o repositório em memória e as rotas Flask. As rotas são verificadas com o cliente de testes do Flask, sem precisar iniciar um servidor separado.
+A suíte inclui os testes de domínio de JV Guerra, os dois repositórios e as rotas Flask usando SQLite. Também verifica o encerramento de um processo e a recuperação do cadastro em outro processo. Os testes usam bancos temporários, sem ler ou alterar seu banco real.
+
+### Conferir a persistência manualmente
+
+1. Inicie `app.py` e confirme que a página inicial mostra `"armazenamento": "sqlite"`.
+2. Cadastre Mercado com o exemplo acima e anote o ID retornado.
+3. Consulte `/api/lancamentos` e confirme o registro.
+4. Encerre o servidor com Ctrl+C.
+5. Execute novamente `.\.venv\Scripts\python.exe app.py`.
+6. Consulte `/api/lancamentos` antes de cadastrar novamente: Mercado deve continuar com o mesmo ID e valor.
+
+Não remova `instance/financeiro.sqlite3` para atualizar o projeto. Para uma cópia de segurança simples, encerre o servidor e copie esse arquivo para outro local.
 
 ## Organização
 
 ```text
 app.py                         # Rotas, validação do contrato e criação da aplicação.
 models.py                      # Classes de JV Guerra e data no fuso acordado.
-repositories/memoria.py        # Repositório provisório de Peterson.
+repositories/sqlite.py         # Repositório persistente padrão.
+repositories/memoria.py        # Repositório em memória para testes.
+repositories/categorias.py     # Seis categorias compartilhadas pelos repositórios.
 tests/test_api.py              # Cadastro, consulta, filtros e erros HTTP.
 tests/test_repositorio_memoria.py
+tests/test_repositorio_sqlite.py
+tests/test_persistencia_processos.py
 tests_models.py                # Testes de domínio de JV Guerra.
 docs/contrato-api.md           # Acordo da API completa a implementar por etapas.
 docs/repositorio-memoria.md    # Métodos internos e integração com o serviço.
+docs/persistencia-sqlite.md     # Estrutura do banco e uso do repositório SQLite.
+instance/financeiro.sqlite3    # Criado localmente e ignorado pelo Git.
 ```
 
 As classes e os testes de Guerra foram incorporados preservando a autoria dos commits. A adaptação de fuso horário usa America/Sao_Paulo, como definido no contrato. O arquivo de modelos também possui dados auxiliares; as rotas selecionam somente os campos públicos do contrato.
@@ -94,6 +115,6 @@ As classes e os testes de Guerra foram incorporados preservando a autoria dos co
 2. A rota passa a chamar esse serviço, mantendo os mesmos pedidos e respostas HTTP.
 3. Igor integra o resumo usando as classes reais do domínio.
 4. Peterson e Peixoto conectam a interface; o modo fictício continua útil até que todas as rotas consumidas por ela existam.
-5. Trocar o repositório em memória pela persistência definitiva e completar edição, exclusão e CSV.
+5. Completar as rotas de edição, exclusão e CSV usando o repositório persistente.
 
-Esta entrega avança as issues de repositório e integração; não conclui a exigência de persistência após reinício.
+Esta entrega implementa a persistência após reinício e mantém o escopo HTTP inicial de categorias, cadastro e consulta. A interface integrada e as demais rotas continuam como próximas etapas.

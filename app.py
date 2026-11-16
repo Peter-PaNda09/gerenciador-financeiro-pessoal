@@ -1,7 +1,8 @@
-"""Primeira integração de Peterson: categorias, cadastro e consulta em memória."""
+"""Categorias, cadastro e consulta com persistência local SQLite."""
 
 import re
 from datetime import date
+from pathlib import Path
 
 from flask import Flask, jsonify, request
 from werkzeug.exceptions import BadRequest, HTTPException, UnsupportedMediaType
@@ -13,7 +14,7 @@ from models import (
     RegistroNaoEncontradoErro,
     data_atual_sao_paulo,
 )
-from repositories.memoria import RepositorioTransacoesMemoria
+from repositories.sqlite import RepositorioTransacoesSQLite
 
 
 CAMPOS_CADASTRO = {"descricao", "valor_centavos", "data", "tipo", "categoria_id"}
@@ -121,11 +122,15 @@ def filtrar_lancamentos(repositorio):
     ]
 
 
-def create_app(repositorio=None, hoje=None):
-    """Injeta o repositório para permitir testes e a futura troca por um banco."""
+def create_app(repositorio=None, hoje=None, caminho_banco=None):
+    """Usa SQLite por padrão; permite injetar memória ou banco temporário nos testes."""
     app = Flask(__name__)
     app.json.ensure_ascii = False
-    repositorio = repositorio if repositorio is not None else RepositorioTransacoesMemoria()
+    if repositorio is None:
+        caminho = caminho_banco if caminho_banco is not None else Path(app.instance_path) / "financeiro.sqlite3"
+        repositorio = RepositorioTransacoesSQLite(caminho)
+    app.config["DATABASE"] = str(repositorio.caminho_banco) if isinstance(repositorio, RepositorioTransacoesSQLite) else None
+    app.config["ARMAZENAMENTO"] = "sqlite" if isinstance(repositorio, RepositorioTransacoesSQLite) else "memoria"
     hoje = hoje if hoje is not None else data_atual_sao_paulo
     app.extensions["repositorio_transacoes"] = repositorio
 
@@ -161,7 +166,7 @@ def create_app(repositorio=None, hoje=None):
     def inicio():
         return jsonify({
             "mensagem": "API do gerenciador financeiro pessoal em execução.",
-            "armazenamento": "memoria",
+            "armazenamento": app.config["ARMAZENAMENTO"],
             "rotas_implementadas": ["GET /api/categorias", "POST /api/lancamentos", "GET /api/lancamentos"],
         })
 
@@ -191,7 +196,6 @@ def create_app(repositorio=None, hoje=None):
     return app
 
 
-app = create_app()
-
 if __name__ == "__main__":
+    app = create_app()
     app.run(host="127.0.0.1", port=5000)

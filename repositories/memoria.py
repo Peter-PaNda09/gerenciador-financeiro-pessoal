@@ -2,6 +2,7 @@
 
 from copy import deepcopy
 from threading import RLock
+from repositories.categorias import CATEGORIAS_INICIAIS as CATEGORIAS_PADRAO
 
 from models import (
     Categoria,
@@ -16,14 +17,7 @@ from models import (
 class RepositorioTransacoesMemoria:
     """Guarda objetos sem banco; devolve cópias para evitar alterações sem salvar."""
 
-    CATEGORIAS_INICIAIS = (
-        (1, "Salário", "receita"),
-        (2, "Alimentação", "despesa"),
-        (3, "Moradia", "despesa"),
-        (4, "Transporte", "despesa"),
-        (5, "Outras receitas", "receita"),
-        (6, "Outras despesas", "despesa"),
-    )
+    CATEGORIAS_INICIAIS = CATEGORIAS_PADRAO
 
     def __init__(self):
         self._categorias = {
