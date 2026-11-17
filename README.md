@@ -244,8 +244,6 @@ Os testes das classes não substituem a verificação da integração com o banc
 - [ ] Verificar o cálculo do saldo.
 - [ ] Exportar o CSV.
 - [ ] Atualizar a página e confirmar a persistência.
-- [ ] Testar campos inválidos.
-- [ ] Verificar a interface em telas menores.
 
 ## Diagrama de classes UML
 
@@ -263,13 +261,6 @@ O script de criação está disponível em:
 
 [script_supabase.sql](docs/script_supabase.sql)
 
-## Segurança e limitações
-
-O sistema foi desenvolvido para fins acadêmicos e demonstração local.
-
-A versão atual não possui autenticação individual nem isolamento de dados por usuário. Para utilização pública com dados financeiros reais, seriam necessárias autenticação, autorização e políticas adequadas de acesso ao banco.
-
-As chaves privilegiadas do Supabase devem permanecer exclusivamente no servidor.
 
 ## Integrantes
 
