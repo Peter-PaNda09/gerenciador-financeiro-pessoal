@@ -276,7 +276,6 @@ As chaves privilegiadas do Supabase devem permanecer exclusivamente no servidor.
 ## Integrantes
 
 | Integrante |
-|---|---|
 | [Igor Assis] |
 | [João Vitor Costa Peixoto] |
 | [João Vitor Guerra Rodrigues] |
