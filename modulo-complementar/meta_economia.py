@@ -9,10 +9,22 @@ Resumo dos conceitos de POO aplicados neste arquivo:
   e inicializar os atributos no estado inicial.
 - Atributos: Características da meta (_nome, _valor_desejado_centavos, _valor_acumulado_centavos).
 - Métodos: Ações e cálculos da classe (adicionar_economia, calcular_quanto_falta,
-  calcular_percentual_progresso, verificar_conclusao, resumo).
+  calcular_percentual_progresso, verificar_conclusao, exibir_status).
 - Encapsulamento: Proteção dos atributos internos (prefixo _) com leitura via @property,
   impedindo alterações diretas no saldo fora do método adicionar_economia().
 """
+
+
+def formatar_moeda(valor: float) -> str:
+    """Formata um número float no padrão monetário brasileiro (ex.: R$ 2.000,00)."""
+    texto_num = f"{valor:,.2f}".replace(",", "_").replace(".", ",").replace("_", ".")
+    return f"R$ {texto_num}"
+
+
+def formatar_percentual(valor: float) -> str:
+    """Formata um número float como percentual brasileiro (ex.: 25,0%)."""
+    texto_num = f"{valor:.1f}".replace(".", ",")
+    return f"{texto_num}%"
 
 
 class MetaEconomia:
@@ -95,16 +107,21 @@ class MetaEconomia:
         return self._valor_acumulado_centavos >= self._valor_desejado_centavos
 
     def exibir_status(self) -> str:
-        """Retorna uma linha formatada com o resumo atual da meta."""
+        """Retorna uma linha formatada com o resumo atual da meta, preservando o nome original."""
         status = "Concluída" if self.verificar_conclusao() else "Em andamento"
+        objetivo_fmt = formatar_moeda(self.valor_desejado)
+        acumulado_fmt = formatar_moeda(self.valor_acumulado)
+        progresso_fmt = formatar_percentual(self.calcular_percentual_progresso())
+        restante_fmt = formatar_moeda(self.calcular_quanto_falta())
+
         return (
             f"Meta: {self.nome} | "
-            f"Objetivo: R$ {self.valor_desejado:,.2f} | "
-            f"Acumulado: R$ {self.valor_acumulado:,.2f} | "
-            f"Progresso: {self.calcular_percentual_progresso():.1f}% | "
-            f"Restante: R$ {self.calcular_quanto_falta():,.2f} | "
+            f"Objetivo: {objetivo_fmt} | "
+            f"Acumulado: {acumulado_fmt} | "
+            f"Progresso: {progresso_fmt} | "
+            f"Restante: {restante_fmt} | "
             f"Status: {status}"
-        ).replace(",", "X").replace(".", ",").replace("X", ".")
+        )
 
 
 def executar_demonstracao() -> None:
@@ -162,6 +179,7 @@ def executar_testes() -> None:
     - Conclusão
     - Valor acima da meta
     - Rejeição de dados inválidos
+    - Preservação do nome original em exibir_status() (caso 'Xbox')
     """
     print("\n" + "=" * 75)
     print("EXECUTANDO TESTES AUTOMATIZADOS (ASSERT)")
@@ -241,10 +259,156 @@ def executar_testes() -> None:
     assert meta.valor_acumulado == saldo_anterior, "Aportes inválidos não podem alterar o acumulado."
     print("[OK] Teste 6: Rejeição de dados inválidos validada.")
 
+    # 7. Teste de formatação em exibir_status() preservando nomes com 'X' (ex.: 'Xbox')
+    meta_xbox = MetaEconomia("Xbox", 3500.00)
+    meta_xbox.adicionar_economia(500.00)
+    status_xbox = meta_xbox.exibir_status()
+    assert "Meta: Xbox |" in status_xbox, f"O nome 'Xbox' foi alterado indevidamente: {status_xbox}"
+    assert ".box" not in status_xbox, "A letra 'X' não pode ser substituída por ponto."
+    assert "R$ 3.500,00" in status_xbox, "O valor desejado deve estar formatado no padrão brasileiro."
+    assert "R$ 500,00" in status_xbox, "O valor acumulado deve estar formatado no padrão brasileiro."
+    print("[OK] Teste 7: Formatação de exibir_status() preservando o nome 'Xbox' validada.")
+
     print("\nTodos os testes passaram com sucesso!")
     print("=" * 75)
+
+
+def ler_valor_monetario(mensagem: str) -> float:
+    """
+    Lê um texto digitado pelo usuário e converte para float,
+    aceitando tanto vírgula quanto ponto decimal (ex.: 250,50 ou 250.50).
+    Levanta ValueError com mensagem clara se o formato for inválido.
+    """
+    entrada = input(mensagem).strip()
+    if not entrada:
+        raise ValueError("Erro: Nenhum valor foi digitado.")
+
+    # Se o usuário digitar no formato brasileiro com milhar e vírgula (ex.: 2.000,50)
+    if "," in entrada and "." in entrada:
+        entrada = entrada.replace(".", "").replace(",", ".")
+    elif "," in entrada:
+        entrada = entrada.replace(",", ".")
+
+    try:
+        return float(entrada)
+    except ValueError:
+        raise ValueError("Erro: Digite um valor numérico válido (ex.: 250 ou 250,50).")
+
+
+def listar_metas(metas: list[MetaEconomia]) -> bool:
+    """
+    Exibe todas as metas cadastradas com seu número de identificação.
+    Retorna True se houver metas ou False caso a lista esteja vazia.
+    """
+    if not metas:
+        print("\n[!] Nenhuma meta cadastrada até o momento. Crie uma meta primeiro (opção 1).")
+        return False
+
+    print("\n--- Metas Cadastradas ---")
+    for indice, meta in enumerate(metas, start=1):
+        situacao = "Concluída" if meta.verificar_conclusao() else "Em andamento"
+        print(
+            f"[{indice}] {meta.nome} "
+            f"(Objetivo: {formatar_moeda(meta.valor_desejado)} | Situação: {situacao})"
+        )
+    return True
+
+
+def escolher_meta(metas: list[MetaEconomia]) -> MetaEconomia | None:
+    """
+    Mostra a lista de metas e solicita ao usuário que escolha uma pelo número.
+    Retorna o objeto MetaEconomia escolhido ou None se a escolha for inválida/vazia.
+    """
+    if not listar_metas(metas):
+        return None
+
+    escolha_str = input("\nDigite o número da meta desejada: ").strip()
+    try:
+        indice = int(escolha_str)
+    except ValueError:
+        print("\n[Erro] Identificação inválida. Digite apenas o número inteiro correspondente à meta.")
+        return None
+
+    if indice < 1 or indice > len(metas):
+        print(f"\n[Erro] Opção fora do intervalo. Escolha um número entre 1 e {len(metas)}.")
+        return None
+
+    return metas[indice - 1]
+
+
+def executar_menu() -> None:
+    """
+    Executa o menu interativo no terminal para gerenciar metas de economia em memória.
+    """
+    metas: list[MetaEconomia] = []
+
+    while True:
+        print("\n" + "=" * 75)
+        print("MENU - GERENCIADOR DE METAS DE ECONOMIA")
+        print("=" * 75)
+        print("1 - Criar uma meta (informar nome e valor desejado)")
+        print("2 - Listar as metas com identificação")
+        print("3 - Adicionar um valor economizado à meta escolhida")
+        print("4 - Consultar acumulado, quanto falta, percentual e situação da meta")
+        print("5 - Sair")
+        print("-" * 75)
+
+        opcao = input("Escolha uma opção (1 a 5): ").strip()
+
+        if opcao == "1":
+            print("\n--- Nova Meta de Economia ---")
+            nome = input("Nome da meta (ex.: Xbox, Notebook, Viagem): ")
+            try:
+                valor_desejado = ler_valor_monetario("Valor desejado (R$): ")
+                nova_meta = MetaEconomia(nome, valor_desejado)
+                metas.append(nova_meta)
+                print(
+                    f"\n[Sucesso] Meta '{nova_meta.nome}' criada com objetivo de "
+                    f"{formatar_moeda(nova_meta.valor_desejado)}! (ID: {len(metas)})"
+                )
+            except ValueError as erro:
+                print(f"\n[{erro}]")
+
+        elif opcao == "2":
+            listar_metas(metas)
+
+        elif opcao == "3":
+            print("\n--- Adicionar Economia ---")
+            meta_escolhida = escolher_meta(metas)
+            if meta_escolhida is not None:
+                try:
+                    valor_aporte = ler_valor_monetario(
+                        f"Informe o valor para adicionar à meta '{meta_escolhida.nome}' (R$): "
+                    )
+                    meta_escolhida.adicionar_economia(valor_aporte)
+                    print(f"\n[Sucesso] Economia de {formatar_moeda(valor_aporte)} registrada!")
+                    print("   ", meta_escolhida.exibir_status())
+                except ValueError as erro:
+                    print(f"\n[{erro}]")
+
+        elif opcao == "4":
+            print("\n--- Consultar Detalhes da Meta ---")
+            meta_escolhida = escolher_meta(metas)
+            if meta_escolhida is not None:
+                situacao = "Concluída" if meta_escolhida.verificar_conclusao() else "Em andamento"
+                print("\n" + "-" * 50)
+                print(f"Meta:                {meta_escolhida.nome}")
+                print(f"Valor desejado:      {formatar_moeda(meta_escolhida.valor_desejado)}")
+                print(f"Valor acumulado:     {formatar_moeda(meta_escolhida.valor_acumulado)}")
+                print(f"Quanto falta:        {formatar_moeda(meta_escolhida.calcular_quanto_falta())}")
+                print(f"Percentual atingido: {formatar_percentual(meta_escolhida.calcular_percentual_progresso())}")
+                print(f"Situação da meta:    {situacao}")
+                print("-" * 50)
+
+        elif opcao == "5":
+            print("\nEncerrando o gerenciador de metas. Até mais!")
+            break
+
+        else:
+            print("\n[Erro] Opção inválida! Por favor, digite um número de 1 a 5.")
 
 
 if __name__ == "__main__":
     executar_demonstracao()
     executar_testes()
+    executar_menu()
