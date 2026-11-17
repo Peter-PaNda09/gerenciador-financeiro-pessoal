@@ -277,15 +277,17 @@ As chaves privilegiadas do Supabase devem permanecer exclusivamente no servidor.
 
 | Integrante | Contribuição |
 |---|---|
-| [Nome do integrante 1] | [Contribuição real] |
-| [Nome do integrante 2] | [Contribuição real] |
-| [Nome do integrante 3] | [Contribuição real] |
+| [Igor Assis] |
+| [João Vitor Costa Peixoto] |
+| [João Vitor Guerra Rodrigues] |
+| [Marcos Vinícius Cavalcante] |
+| [Peterson Mário] |
 
 **Instituição:** [Faculdade Anhanguera Uberlândia]
 
 **Disciplinas:** Programação Orientada a Objetos e JavaScript
 
-**Período:** [6° Período]
+**Período:** [Ciência da Computação - 6° Período]
 
 ## Objetivo acadêmico
 
