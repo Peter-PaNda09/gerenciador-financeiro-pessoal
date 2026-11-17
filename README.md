@@ -261,7 +261,7 @@ O banco de dados utiliza as tabelas `categorias` e `lancamentos`, relacionadas p
 
 O script de criação está disponível em:
 
-[script_supabase.sql](docs/estrutura_supabase.sql)
+[script_supabase.sql](docs/script_supabase.sql)
 
 ## Segurança e limitações
 
