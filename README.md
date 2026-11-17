@@ -268,7 +268,7 @@ O script de criação está disponível em:
 
 **Instituição:** [Faculdade Anhanguera Uberlândia]
 
-**Disciplinas:** Programação Orientada a Objetos e JavaScript
+**Disciplinas:** Programação Orientada a Objetos e Desenvolvimento em JavaScript
 
 **Curso e Período:** [Ciência da Computação - 6° Período]
 
