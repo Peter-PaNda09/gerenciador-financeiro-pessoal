@@ -264,7 +264,7 @@ O script de criação está disponível em:
 
 ## Integrantes
 
-| Integrantes: Igor Assis; João Vitor Costa Peixoto; João Vitor Guerra Rodrigues; Marcos Vinícius Cavalcante; Peterson Mário;
+| Integrantes: Igor Assis; João Vitor Costa Peixoto; João Vitor Guerra Rodrigues; Marcos Vinícius Cavalcante; Peterson Mário; Daniel Almeida;
 
 **Instituição:** [Faculdade Anhanguera Uberlândia]
 
