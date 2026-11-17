@@ -115,7 +115,7 @@ Os módulos `models.py`, `servico.py`, `persistencia_supabase.py` e `app.py` pos
 - `persistencia_supabase.py` — Comunicação com o Supabase.
 - `tests_models.py` — Testes automatizados.
 - `requirements.txt` — Dependências Python.
-- `.env.example` — Modelo de configuração.
+- `.env` — Modelo de configuração.
 - `.gitignore` — Proteção de arquivos locais.
 - `templates/index.html` — Interface HTML.
 - `static/css/styles.css` — Estilização.
@@ -166,9 +166,7 @@ Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
 
 `SUPABASE_KEY=SUA_CHAVE_PRIVADA_DO_BACKEND`
 
-`FLASK_DEBUG=0`
-
-Substitua os valores fictícios pelas informações do seu projeto.
+Substitua os valores fictícios pelas informações no projeto.
 
 **Nunca publique a chave secreta no GitHub ou no frontend.**
 
