@@ -174,4 +174,3 @@ As contribuições e a evolução do projeto estão registradas no histórico de
 - Utilizar pesquisa e filtros.
 - Exportar e conferir o CSV.
 - Reiniciar o Flask e verificar a persistência.
-- Conferir a interface em tela menor.
