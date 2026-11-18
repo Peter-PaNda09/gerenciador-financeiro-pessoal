@@ -1,0 +1,360 @@
+{
+  "data": "2026-11-17T21:09:20-03:00",
+  "fuso": "America/Sao_Paulo (UTC-03:00 na data da execução)",
+  "base_main": "df7f9bc124cb099d035a13d6d16062c41f837e1f",
+  "base_daniel": "f7a821b",
+  "estado_avaliado": "PETER local, com testes e correções de Peterson ainda sem commit",
+  "banco": "repositório fake isolado; sem credenciais e sem rede",
+  "escopo": "Flask, serviço e modelos reais; módulo de Daniel com correção local de Peterson; contrato antigo não exigido",
+  "python": "3.12.14",
+  "pytest": "9.2.0",
+  "codigo_saida_pytest": 0,
+  "totais": {
+    "coletados": 72,
+    "passed": 72,
+    "failed": 0,
+    "xfailed": 0,
+    "xpassed": 0,
+    "skipped": 0,
+    "errors": 0
+  },
+  "por_arquivo": {
+    "tests/test_api_consistencia.py": {
+      "passed": 15
+    },
+    "tests/test_api_fluxos.py": {
+      "passed": 31
+    },
+    "tests/test_meta_daniel.py": {
+      "passed": 20
+    },
+    "tests_models.py": {
+      "passed": 6
+    }
+  },
+  "historico_inicial": {
+    "passed": 65,
+    "xfailed": 7,
+    "problemas_distintos": 4
+  },
+  "correcoes": [
+    {
+      "id": "API-01",
+      "autor_correcao": "Peterson",
+      "arquivo": "servico.py",
+      "descricao": "Centavos recebidos sem conversão indevida para reais; tipo e positividade validados pela classe Transacao.",
+      "casos_resolvidos": 3
+    },
+    {
+      "id": "API-02",
+      "autor_correcao": "Peterson",
+      "arquivo": "servico.py",
+      "descricao": "Descrição original preservada para validação; None não é mais convertido em texto.",
+      "casos_resolvidos": 1
+    },
+    {
+      "id": "WEB-01",
+      "autor_correcao": "Peterson",
+      "arquivo": "templates/index.html",
+      "descricao": "IDs current-section, status-dot e connection-status adicionados ao cabeçalho; mensagem inicial Conectando.",
+      "casos_resolvidos": 1
+    },
+    {
+      "id": "META-01",
+      "autor_correcao": "Peterson",
+      "arquivo": "modulo-complementar/meta_economia.py",
+      "descricao": "math.isfinite verifica o valor escalado antes de round no construtor e no aporte; entradas infinitas geram ValueError tratado pelo menu.",
+      "casos_resolvidos": 2
+    }
+  ],
+  "casos": [
+    {
+      "teste": "tests/test_api_consistencia.py::test_entrada_monetaria_deve_ser_rejeitada_ou_preservar_o_valor_em_centavos[45000]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_entrada_monetaria_deve_ser_rejeitada_ou_preservar_o_valor_em_centavos[45000.0]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_edicao_nao_pode_multiplicar_o_saldo_por_mudar_o_tipo_json",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_descricao_nula_nao_e_uma_descricao_informada",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_dados_necessarios_ao_lancamento_sao_obrigatorios[descricao]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_dados_necessarios_ao_lancamento_sao_obrigatorios[valor_centavos]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_dados_necessarios_ao_lancamento_sao_obrigatorios[data]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_dados_necessarios_ao_lancamento_sao_obrigatorios[tipo]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_dados_necessarios_ao_lancamento_sao_obrigatorios[categoria_id]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_id_do_cadastro_e_gerado_pelo_backend",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_corpo_incompativel_e_rejeitado_com_erro_compreensivel[post-/api/lancamentos]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_corpo_incompativel_e_rejeitado_com_erro_compreensivel[put-/api/lancamentos/1]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_resumo_sem_mes_usa_mes_atual_conforme_implementacao",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_rota_html_e_arquivos_estaticos_sao_servidos",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_consistencia.py::test_html_possui_os_elementos_que_o_js_usa_na_inicializacao",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_lista_vazia_e_novo_teste_nao_tem_dados_de_outro",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_categorias_consultadas_sem_ids_fixos_da_interface",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_cadastro_consulta_e_objeto_real[receita-11-300000]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_cadastro_consulta_e_objeto_real[despesa-22-45000]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_edicao_preserva_id_e_substitui_valor",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_exclusao_remove_somente_o_id_escolhido",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_edicao_e_exclusao_de_inexistente_retornam_404",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[descricao-]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[descricao-   ]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[descricao-valor2]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[valor_centavos-0]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[valor_centavos--1]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[valor_centavos-True]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[data-2020-02-30]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[data-2026-11-18]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[tipo-transferencia]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[categoria_id-999]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_validacoes_basicas_nao_gravam[categoria_id-11]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_edicao_invalida_preserva_o_registro",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_json_malformado_e_lista_sao_rejeitados",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_filtros_combinados_busca_sem_diferenciar_maiusculas_e_ordenacao",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_filtros_invalidos_basicos[mes=2020-13]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_filtros_invalidos_basicos[tipo=invalido]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_filtros_invalidos_basicos[categoria_id=abc]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_filtros_invalidos_basicos[categoria_id=-1]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_resumo_usa_mes_e_inclui_historico_no_saldo",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_resumo_recalcula_depois_de_editar_e_excluir",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_csv_repete_filtros_da_consulta_e_escapa_ponto_e_virgula",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_csv_vazio_tem_apenas_cabecalho",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_erro_interno_e_tratado_sem_expor_detalhes",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_api_fluxos.py::test_rotas_e_metodos_inexistentes",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_sete_grupos_de_asserts_do_proprio_daniel",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_exibir_status_preserva_nome_e_formata_numeros[Xbox]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_exibir_status_preserva_nome_e_formata_numeros[Xbox, edi\\xe7\\xe3o X. S\\xe9rie_X]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_exibir_status_preserva_nome_e_formata_numeros[Viagem X, Y. Z]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_cria_xbox_recebe_aporte_e_consulta",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_duas_metas_e_conclusao_sem_misturar_saldos",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_sem_metas_orienta_o_usuario[2]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_sem_metas_orienta_o_usuario[3]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_sem_metas_orienta_o_usuario[4]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_id_invalido_volta_ao_menu[abc]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_id_invalido_volta_ao_menu[0]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_id_invalido_volta_ao_menu[99]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_valores_invalidos_nao_impedem_nova_tentativa",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_leitura_monetaria_aceita_formatos_usados_no_menu[2.000,50-2000.5]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_leitura_monetaria_aceita_formatos_usados_no_menu[250,50-250.5]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_leitura_monetaria_aceita_formatos_usados_no_menu[250.50-250.5]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_saldos_sao_centavos_e_propriedade_publica_nao_tem_setter",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_arquivo_completo_aceita_comandos_no_terminal",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_valor_infinito_deve_ser_rejeitado_sem_encerrar[criacao]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests/test_meta_daniel.py::test_menu_valor_infinito_deve_ser_rejeitado_sem_encerrar[aporte]",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests_models.py::TestesClassesDominioFinanceiro::test_1_construcao_valida_receita_e_despesa",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests_models.py::TestesClassesDominioFinanceiro::test_2_classe_transacao_nao_pode_ser_instanciada_diretamente",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests_models.py::TestesClassesDominioFinanceiro::test_3_validacoes_na_construcao_rejeitam_dados_invalidos",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests_models.py::TestesClassesDominioFinanceiro::test_4_encapsulamento_impede_alteracoes_invalidas",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests_models.py::TestesClassesDominioFinanceiro::test_5_impactos_opostos_no_saldo_polimorfismo",
+      "resultado": "passed"
+    },
+    {
+      "teste": "tests_models.py::TestesClassesDominioFinanceiro::test_6_conversao_para_dict_segue_contrato",
+      "resultado": "passed"
+    }
+  ]
+}
