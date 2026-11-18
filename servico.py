@@ -45,7 +45,7 @@ class GerenciadorFinanceiro:
         categoria = self._repositorio.buscar_categoria_por_id(categoria_id)
 
         if "valor_centavos" in dados and dados["valor_centavos"] is not None:
-            valor_centavos = Transacao.converter_para_centavos(dados["valor_centavos"])
+            valor_centavos = dados["valor_centavos"]
         elif "valor" in dados and dados["valor"] is not None:
             valor_centavos = Transacao.converter_para_centavos(dados["valor"])
         else:
@@ -54,7 +54,7 @@ class GerenciadorFinanceiro:
                 campo="valor_centavos",
             )
 
-        descricao = str(dados.get("descricao", ""))
+        descricao = dados.get("descricao", "")
         data_lancamento = str(dados.get("data", ""))
 
         classe_transacao = Receita if tipo == "receita" else Despesa

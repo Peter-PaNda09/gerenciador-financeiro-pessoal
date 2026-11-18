@@ -14,6 +14,7 @@ Resumo dos conceitos de POO aplicados neste arquivo:
   impedindo alterações diretas no saldo fora do método adicionar_economia().
 """
 
+import math
 
 def formatar_moeda(valor: float) -> str:
     """Formata um número float no padrão monetário brasileiro (ex.: R$ 2.000,00)."""
@@ -43,7 +44,12 @@ class MetaEconomia:
         if not isinstance(valor_desejado, (int, float)) or isinstance(valor_desejado, bool):
             raise ValueError("Erro: O valor desejado deve ser um número válido.")
 
-        valor_centavos = round(valor_desejado * 100)
+        valor_em_centavos = valor_desejado * 100
+
+        if not math.isfinite(valor_em_centavos):
+            raise ValueError("Erro: Informe um valor desejado finito dentro do limite permitido.")
+
+        valor_centavos = round(valor_em_centavos)
         if valor_centavos <= 0:
             raise ValueError("Erro: O valor desejado da meta deve ser maior que zero.")
 
@@ -77,7 +83,12 @@ class MetaEconomia:
         if not isinstance(valor, (int, float)) or isinstance(valor, bool):
             raise ValueError("Erro: O valor do aporte deve ser um número válido.")
 
-        aporte_centavos = round(valor * 100)
+        valor_em_centavos = valor * 100
+
+        if not math.isfinite(valor_em_centavos):
+            raise ValueError("Erro: Informe um aporte finito dentro do limite permitido.")
+
+        aporte_centavos = round(valor_em_centavos)
         if aporte_centavos <= 0:
             raise ValueError("Erro: O valor do aporte deve ser maior que zero.")
 
