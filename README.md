@@ -1,277 +1,177 @@
 # Gerenciador Financeiro Pessoal
 
-Aplicação web desenvolvida como projeto acadêmico das disciplinas de **Programação Orientada a Objetos (POO)** e **JavaScript**, com o objetivo de facilitar o controle de receitas, despesas e saldos financeiros.
+Projeto acadêmico de Programação Orientada a Objetos e Desenvolvimento em JavaScript, desenvolvido na Faculdade Anhanguera Uberlândia.
 
-O sistema utiliza **Python, Flask, HTML, CSS, JavaScript e Supabase (PostgreSQL)**, integrando uma interface web responsiva com uma API REST e persistência de dados.
+A aplicação permite registrar receitas e despesas, acompanhar o resultado financeiro e consultar movimentações por período.
 
 ## Funcionalidades
 
-### Gerenciamento financeiro
-
-- Cadastro de receitas e despesas.
-- Edição e exclusão de lançamentos.
+- Cadastro, consulta, edição e exclusão de lançamentos.
 - Classificação por categorias.
-- Consulta de movimentações financeiras.
-- Armazenamento permanente no Supabase.
-- Validação dos dados inseridos.
-
-### Painel de controle
-
-- Total de receitas do período.
-- Total de despesas do período.
-- Resultado financeiro (receitas menos despesas).
-- Saldo acumulado.
+- Pesquisa por descrição e filtros por mês, tipo e categoria.
+- Resumo com receitas, despesas, resultado e saldo acumulado.
 - Distribuição das despesas por categoria.
-- Seleção do mês para análise financeira.
+- Exportação dos lançamentos filtrados em CSV.
+- Interface responsiva com validações e mensagens de sucesso ou erro.
+- Persistência compartilhada no Supabase.
+- Módulo complementar de metas de economia pelo terminal.
 
-### Pesquisa e filtros
+## Tecnologias
 
-- Pesquisa por descrição.
-- Filtro por mês.
-- Filtro por tipo de lançamento.
-- Filtro por categoria.
-- Opção de limpar filtros.
-- Exportação de lançamentos em CSV.
+Python, Flask, HTML, CSS, JavaScript, Supabase/PostgreSQL, pytest, Git e GitHub.
 
-### Interface
-
-- Design responsivo.
-- Formulário interativo de cadastro e edição.
-- Mensagens de sucesso e erro.
-- Confirmação antes da exclusão.
-- Atualização dinâmica das informações.
-
-## Tecnologias utilizadas
-
-| Tecnologia | Utilização |
-|---|---|
-| Python | Programação Orientada a Objetos |
-| Flask | Backend e API REST |
-| HTML5 | Estrutura da interface |
-| CSS3 | Estilização e responsividade |
-| JavaScript | Interatividade, DOM e requisições HTTP |
-| Supabase | Persistência de dados |
-| PostgreSQL | Banco de dados relacional |
-| Git e GitHub | Versionamento e documentação |
-| Pytest | Execução de testes automatizados |
-
-## Arquitetura do sistema
-
-O projeto foi dividido em camadas para facilitar a manutenção e a compreensão do código.
-
-**Frontend:** apresenta a interface e realiza requisições HTTP por meio de `fetch()`.
-
-**API Flask:** recebe as requisições, chama os serviços e devolve respostas JSON.
-
-**Serviço:** aplica as regras de negócio, valida dados, realiza cálculos e coordena operações.
-
-**Modelos:** representam as entidades financeiras por meio de classes Python.
-
-**Persistência:** realiza consultas, inserções, atualizações e exclusões no Supabase.
-
-Fluxo de funcionamento:
-
-1. O usuário interage com a interface.
-2. O JavaScript envia uma requisição ao Flask.
-3. O Flask aciona a classe `GerenciadorFinanceiro`.
-4. O serviço utiliza as classes de domínio e o repositório.
-5. O repositório comunica-se com o Supabase.
-6. O resultado retorna para a interface.
-
-## Programação Orientada a Objetos
-
-### Abstração
-
-A classe `Transacao` é abstrata e define os atributos e comportamentos compartilhados pelas movimentações financeiras.
-
-### Herança
-
-As classes `Receita` e `Despesa` herdam da classe `Transacao`.
-
-### Polimorfismo
-
-O método `impacto_no_saldo()` possui implementações diferentes:
-
-- Receita: impacto positivo.
-- Despesa: impacto negativo.
-
-### Encapsulamento
-
-Os atributos são protegidos por propriedades e validações, evitando alterações que deixem os objetos inconsistentes.
-
-### Associação
-
-Cada transação está vinculada a uma categoria. Uma categoria pode estar associada a várias transações.
-
-### Separação de responsabilidades
-
-Os módulos `models.py`, `servico.py`, `persistencia_supabase.py` e `app.py` possuem responsabilidades distintas.
-
-## Estrutura do projeto
-
-- `app.py` — Rotas e API Flask.
-- `models.py` — Classes de domínio.
-- `servico.py` — Regras de negócio.
-- `persistencia_supabase.py` — Comunicação com o Supabase.
-- `tests_models.py` — Testes automatizados.
-- `requirements.txt` — Dependências Python.
-- `.env` — Modelo de configuração.
-- `.gitignore` — Proteção de arquivos locais.
-- `templates/index.html` — Interface HTML.
-- `static/css/styles.css` — Estilização.
-- `static/js/app.js` — Interatividade e requisições à API.
-- `docs/estrutura_supabase.sql` — Banco de dados.
-- `docs/diagrama_classes.puml` — Diagrama editável.
-- `docs/diagrama_classes.png` — Imagem do diagrama.
-
-## Como executar o projeto
+## Como executar
 
 ### 1. Pré-requisitos
 
-- Python 3.10 ou superior.
-- Git ou uma cópia dos arquivos do repositório.
-- VS Code ou outro editor de código.
-- Conta no Supabase.
+- Python 3.11 ou superior.
+- Git.
 - Navegador atualizado.
+- Acesso à internet e configuração do projeto Supabase.
 
-### 2. Obter os arquivos
+### 2. Baixar o projeto
 
-Clone o repositório ou utilize a opção **Code → Download ZIP** no GitHub.
+```powershell
+git clone https://github.com/Peter-PaNda09/gerenciador-financeiro-pessoal.git
+cd gerenciador-financeiro-pessoal
+```
 
-Abra a pasta principal do projeto no VS Code.
+### 3. Criar o ambiente e instalar as dependências
 
-### 3. Instalar dependências
+```powershell
+py -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
-No terminal do VS Code, em Windows, execute:
+Se o computador reconhecer apenas `python`, utilize `python -m venv .venv`.
 
-`py -m venv .venv`
+### 4. Configurar o banco
 
-Depois:
+Para utilizar o banco compartilhado do grupo, solicite a configuração ao responsável pelo Supabase. Não é necessário recriar as tabelas.
 
-`.\.venv\Scripts\python.exe -m pip install -r requirements.txt`
+Para configurar um projeto Supabase novo, execute o script [docs/script_supabase.sql](docs/script_supabase.sql) no SQL Editor e configure as permissões de acesso adequadas.
 
-### 4. Configurar o Supabase
+Crie o arquivo local de configuração, caso ainda não exista:
 
-1. Acesse o painel do Supabase.
-2. Crie um projeto.
-3. Abra o SQL Editor.
-4. Execute o script `docs/estrutura_supabase.sql`, após revisar as configurações de acesso.
-5. Confirme a criação das tabelas `categorias` e `lancamentos`.
+```powershell
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+```
 
-### 5. Configurar o arquivo .env
+Abra `.env` e preencha:
 
-Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+```dotenv
+SUPABASE_URL=https://SEU-PROJETO.supabase.co
+SUPABASE_KEY=SUA_CHAVE_DO_BACKEND
+FLASK_DEBUG=0
+```
 
-`SUPABASE_URL=https://SEU-PROJETO.supabase.co`
+A chave precisa ter as permissões necessárias para acessar as tabelas. O código não configura essas permissões automaticamente.
 
-`SUPABASE_KEY=SUA_CHAVE_PRIVADA_DO_BACKEND`
+O `.env` contém a configuração local e é ignorado pelo Git. O `.env.example` contém apenas exemplos. Nunca publique chaves privilegiadas.
 
-Substitua os valores fictícios pelas informações no projeto.
+### 5. Iniciar a aplicação
 
-**Nunca publique a chave secreta no GitHub ou no frontend.**
+```powershell
+.\.venv\Scripts\python.exe app.py
+```
 
-### 6. Executar o Flask
+Abra [http://127.0.0.1:5000](http://127.0.0.1:5000).
 
-No Windows:
+A interface depende do Flask: não abra o HTML diretamente.
 
-`.\.venv\Scripts\python.exe app.py`
+## Persistência
 
-Em Linux ou macOS:
+Os lançamentos são armazenados nas tabelas `categorias` e `lancamentos` do Supabase.
 
-`.venv/bin/python app.py`
+Os valores financeiros são armazenados em centavos inteiros. Por exemplo, R$ 450,00 corresponde a `45000`.
 
-Abra no navegador:
+Reiniciar o Flask não apaga os dados. Computadores configurados para o mesmo banco acessam o mesmo conjunto de lançamentos após uma nova consulta.
 
-**http://127.0.0.1:5000**
-
-Não abra o `index.html` diretamente, pois a página depende do Flask e da API.
-
-## Como utilizar
-
-1. Clique em **Novo lançamento**.
-2. Selecione Receita ou Despesa.
-3. Informe descrição, valor, data e categoria.
-4. Clique em **Salvar lançamento**.
-5. Consulte a movimentação na tabela.
-6. Utilize os botões de edição ou exclusão quando necessário.
-7. Experimente os filtros e confira o resumo financeiro.
-8. Clique em **Exportar CSV** para obter os dados filtrados.
-
-Os valores são armazenados no banco em centavos, evitando imprecisões em cálculos monetários. Uma coluna calculada `valor_reais` pode facilitar a visualização no Supabase.
-
-## API REST
-
-| Método | Endpoint | Função |
-|---|---|---|
-| GET | `/api/categorias` | Consultar categorias |
-| GET | `/api/lancamentos` | Consultar lançamentos |
-| POST | `/api/lancamentos` | Cadastrar lançamento |
-| PUT | `/api/lancamentos/{id}` | Editar lançamento |
-| DELETE | `/api/lancamentos/{id}` | Excluir lançamento |
-| GET | `/api/resumo` | Consultar resumo financeiro |
-| GET | `/api/exportar` | Exportar CSV |
-
-A API utiliza JSON para as operações de consulta e cadastro, incluindo tratamento de erros de validação, registros inexistentes e falhas internas.
+A versão acadêmica utiliza um perfil compartilhado, sem autenticação individual.
 
 ## Testes automatizados
 
-O arquivo `tests_models.py` contém seis testes das classes de domínio.
+Instale as dependências dos testes:
 
-Para executar no Windows:
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements-testes.txt
+```
 
-`.\.venv\Scripts\python.exe -m pytest -q tests_models.py`
+Execute a suíte com uma pasta temporária exclusiva:
 
-Os testes verificam:
+```powershell
+$pastaTemporariaTeste = Join-Path (Get-Location).Path ("tmp-testes-" + [guid]::NewGuid().ToString("N"))
+.\.venv\Scripts\python.exe -m pytest -q --basetemp $pastaTemporariaTeste
+```
 
-- Criação de receitas e despesas.
-- Abstração da classe Transacao.
-- Rejeição de dados inválidos.
-- Encapsulamento.
-- Polimorfismo.
-- Conversão de objetos em dicionários.
+Resultado da revisão de 17/11/2026: **72 testes aprovados, sem falhas ou xfail**.
 
-Os testes das classes não substituem a verificação da integração com o banco.
+A suíte cobre cadastro, consulta, edição, exclusão, filtros, validações, resumo financeiro, CSV, classes POO e o módulo complementar de metas.
 
-## Roteiro de testes manuais
+Os testes da API usam as rotas, o serviço e os modelos reais com um repositório fictício isolado. Não precisam de `.env` nem acessam ou alteram os dados do Supabase.
 
-- [ ] Cadastrar uma receita.
-- [ ] Cadastrar uma despesa.
-- [ ] Editar um lançamento.
-- [ ] Excluir um lançamento.
-- [ ] Filtrar por mês.
-- [ ] Filtrar por tipo e categoria.
-- [ ] Pesquisar uma descrição.
-- [ ] Verificar o cálculo do saldo.
-- [ ] Exportar o CSV.
-- [ ] Atualizar a página e confirmar a persistência.
+Essa suíte não substitui a conferência manual da aplicação com o banco real.
 
-## Diagrama de classes UML
+Detalhes e evidências: [docs/testes-api-peter.md](docs/testes-api-peter.md).
 
-O diagrama apresenta as classes principais, seus atributos, métodos e relacionamentos.
+## Módulo complementar de metas
 
-![Diagrama de Classes](docs/diagrama_classes.png)
+Desenvolvido por Daniel para a disciplina de POO, com correção posterior de Peterson para entradas não finitas.
 
-[Código PlantUML editável](docs/diagrama_classes.puml)
+```powershell
+.\.venv\Scripts\python.exe .\modulo-complementar\meta_economia.py
+```
 
-## Banco de dados
+Após a demonstração e os testes internos, o menu permite criar metas, adicionar economias e consultar o progresso.
 
-O banco de dados utiliza as tabelas `categorias` e `lancamentos`, relacionadas pela chave estrangeira `categoria_id`.
+As metas ficam na memória durante a execução. Esse módulo é separado do site e do Supabase.
 
-O script de criação está disponível em:
+Revisão: [docs/revisao-meta-daniel.md](docs/revisao-meta-daniel.md).
 
-[script_supabase.sql](docs/script_supabase.sql)
+## Organização do código
 
+- `app.py`: interface e rotas Flask.
+- `models.py`: classes e validações do domínio.
+- `servico.py`: operações, filtros, cálculos e exportação.
+- `persistencia_supabase.py`: acesso ao banco remoto.
+- `templates/index.html`: estrutura da interface.
+- `static/css/styles.css`: estilos e responsividade.
+- `static/js/app.js`: interação, DOM e chamadas à API.
+- `tests/`: testes da API e do módulo complementar.
+- `tests_models.py`: testes das classes de domínio.
+- `docs/`: documentação, SQL, diagrama e evidências.
+
+## Programação Orientada a Objetos
+
+- **Abstração:** `Transacao` define comportamentos comuns.
+- **Herança:** `Receita` e `Despesa` herdam de `Transacao`.
+- **Polimorfismo:** `impacto_no_saldo()` retorna valores positivos ou negativos conforme a classe.
+- **Encapsulamento:** propriedades validam os atributos.
+- **Associação:** cada transação está vinculada a uma categoria.
+
+![Diagrama de classes](docs/diagrama_classes.png)
+
+[Diagrama editável em PlantUML](docs/diagrama_classes.puml).
 
 ## Integrantes
 
-| Integrantes: Igor Assis; João Vitor Costa Peixoto; João Vitor Guerra Rodrigues; Marcos Vinícius Cavalcante; Peterson Mário; Daniel Almeida;
+| Integrante | Disciplinas |
+| --- | --- |
+| Igor Assis | POO e Desenvolvimento em JavaScript |
+| João Vitor Costa Peixoto | POO e Desenvolvimento em JavaScript |
+| João Vitor Guerra Rodrigues | POO e Desenvolvimento em JavaScript |
+| Marcos Vinícius Cavalcante | POO e Desenvolvimento em JavaScript |
+| Peterson Mário | POO e Desenvolvimento em JavaScript |
+| Daniel Almeida | Somente POO, no módulo complementar |
 
-**Instituição:** [Faculdade Anhanguera Uberlândia]
+As contribuições e a evolução do projeto estão registradas no histórico de commits e nos pull requests.
 
-**Disciplinas:** Programação Orientada a Objetos e Desenvolvimento em JavaScript
+## Roteiro de conferência manual
 
-**Curso e Período:** [Ciência da Computação - 6° Período]
-
-## Objetivo acadêmico
-
-O projeto demonstra a aplicação integrada de conceitos de Programação Orientada a Objetos, desenvolvimento web, manipulação do DOM, validação de dados, comunicação assíncrona, APIs REST, banco de dados relacional e versionamento de código.
+- Cadastrar uma receita e uma despesa.
+- Editar um lançamento e conferir o resumo.
+- Excluir um lançamento.
+- Utilizar pesquisa e filtros.
+- Exportar e conferir o CSV.
+- Reiniciar o Flask e verificar a persistência.
+- Conferir a interface em tela menor.
